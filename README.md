@@ -8,7 +8,7 @@
 
 <div align="center">
 
-🚀 [Enhanced Features](#enhanced-features) | ⚡ [Installation & Setup](#installation-and-setup) | 📦 [Package Usage](#alpacatradingagent-package) | 🌐 [Web Interface](#web-ui-usage) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
+🚀 [Enhanced Features](#enhanced-features) | ⚡ [Installation & Setup](#installation-and-setup) | 📦 [Package Usage](#alpacatradingagent-package) | 🌐 [Web Interface](#web-ui-usage) | 📖 [Complete Guide](#complete-guide) | 🤝 [Contributing](#contributing) | 📄 \[Citation]
 
 </div>
 
@@ -48,6 +48,12 @@ AlpacaTradingAgent introduces powerful new capabilities specifically designed fo
 - **Tabbed Reports**: Organized analysis reports with easy navigation
 - **Chat-Style Debates**: Visualize agent debates as conversation threads
 - **Position Management**: View current positions, recent orders, and liquidate positions directly from UI
+
+## Complete Guide
+
+For an in-depth, step-by-step walkthrough of using the AlpacaTradingAgent web UI for automated trading, check out the complete guide on Dev.to:
+
+* **[Complete Guide: Using AlpacaTradingAgent Web UI for Automated Trading](https://dev.to/aarontrng/complete-guide-using-alpacatradingagent-web-ui-for-automated-trading-3k78)**
 
 ## AlpacaTradingAgent Framework
 
