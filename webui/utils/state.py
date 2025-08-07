@@ -247,8 +247,8 @@ class AppState:
         self.current_session_id = None
         self.session_start_time = None
 
-    def get_tool_calls_for_display(self, agent_filter=None):
-        """Get tool calls in a consistent format for UI display, optionally filtered by agent type"""
+    def get_tool_calls_for_display(self, agent_filter=None, symbol_filter=None):
+        """Get tool calls in a consistent format for UI display, optionally filtered by agent type and symbol"""
         formatted_calls = []
         
         for call in self.tool_calls_log:
@@ -289,7 +289,17 @@ class AppState:
                 # Match agent types using flexible matching
                 if agent_filter.lower() in agent_type or self._matches_agent_type(agent_filter, agent_type):
                     filtered_calls.append(call)
-            return filtered_calls
+            formatted_calls = filtered_calls
+            
+        # Filter by symbol if specified
+        if symbol_filter:
+            filtered_calls = []
+            for call in formatted_calls:
+                call_symbol = call.get("symbol")
+                # Match symbol (case-insensitive)
+                if call_symbol and call_symbol.upper() == symbol_filter.upper():
+                    filtered_calls.append(call)
+            formatted_calls = filtered_calls
         
         return formatted_calls
     

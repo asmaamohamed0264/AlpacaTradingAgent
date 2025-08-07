@@ -136,6 +136,7 @@ def format_tool_outputs_content(tool_calls_log, report_type=None):
         execution_time = tool_call.get('execution_time', 'Unknown')
         status = tool_call.get('status', 'unknown')
         agent_type = tool_call.get('agent_type', 'Unknown Agent')
+        symbol = tool_call.get('symbol', 'Unknown Symbol')
         
         # Status icon and color
         if status == "success":
@@ -159,6 +160,7 @@ def format_tool_outputs_content(tool_calls_log, report_type=None):
         tool_section = f"""## {status_icon} Tool Call #{i}: {tool_name}
 
 **🤖 Agent:** {agent_type}  
+**📈 Symbol:** {symbol}  
 **⏰ Timestamp:** {timestamp}  
 **⚡ Execution Time:** {execution_time}  
 **📊 Status:** {status_color} {status.title()}  
@@ -184,7 +186,14 @@ def format_tool_outputs_content(tool_calls_log, report_type=None):
     
     report_title = report_type.replace('_', ' ').title() if report_type else "All Reports"
     
-    summary = f"""# 🔧 Tool Outputs - {report_title}
+    # Get symbol from first tool call if available
+    symbol_info = ""
+    if tool_calls_log:
+        symbol = tool_calls_log[0].get('symbol')
+        if symbol:
+            symbol_info = f" - {symbol}"
+    
+    summary = f"""# 🔧 Tool Outputs - {report_title}{symbol_info}
 
 **Total Calls:** {len(tool_calls_log)}  
 **✅ Successful:** {success_count}  

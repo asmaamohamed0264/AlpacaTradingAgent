@@ -62,16 +62,22 @@ class TradingAgentsGraph:
         deep_think_model = self.config["deep_think_llm"]
         quick_think_model = self.config["quick_think_llm"]
         
-        # Check if models are Claude models (o3, o3-mini, o4-mini) which don't support temperature
+        # Check if models don't support temperature parameter
         deep_think_kwargs = {}
         quick_think_kwargs = {}
         
-        # Claude models don't support temperature parameter
-        if not any(model_prefix in deep_think_model for model_prefix in ["o3", "o4-mini"]):
+        # Models that don't support temperature parameter
+        no_temp_models = ["o3", "o4-mini", "gpt-5", "gpt-5-mini", "gpt-5-nano"]
+        
+        if not any(model_prefix in deep_think_model for model_prefix in no_temp_models):
             deep_think_kwargs["temperature"] = 0.2
             
-        if not any(model_prefix in quick_think_model for model_prefix in ["o3", "o4-mini"]):
+        if not any(model_prefix in quick_think_model for model_prefix in no_temp_models):
             quick_think_kwargs["temperature"] = 0.2
+        
+        # Note: GPT-5 specific parameters like effort, verbosity, format are not yet 
+        # supported by the current OpenAI Python client library. 
+        # These will be added when the client library is updated to support them.
         
         self.deep_thinking_llm = ChatOpenAI(
             model=deep_think_model, 

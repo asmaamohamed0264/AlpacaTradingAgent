@@ -171,7 +171,7 @@ def create_config_panel():
                     {"label": "o3", "value": "o3"},
                     {"label": "o1", "value": "o1"},
                 ],
-                value="gpt-4.1-nano",
+                value="gpt-5-nano",
                 className="mb-2"
             ),
             html.H5("LLM Deep Thinker Model:", className="mt-3"),
@@ -189,7 +189,7 @@ def create_config_panel():
                     {"label": "o3", "value": "o3"},
                     {"label": "o1", "value": "o1"},
                 ],
-                value="gpt-4.1-nano",
+                value="gpt-5-nano",
                 className="mb-3"
             ),
             # Dynamic Start/Stop button

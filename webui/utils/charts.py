@@ -24,11 +24,12 @@ def create_chart(ticker: str, period: str = "1y", end_date: Union[str, datetime]
     else:
         end_dt = now_utc
 
+    # Updated period mapping with proper differentiation
     period_map = {
         "15m": ("15Min", timedelta(days=5)),      # 5 days of 15-minute data for 15m view (covers weekends)
-        "1d": ("15Min", timedelta(days=3)),       # 3 days of 15-minute data for 1d view  
-        "1w": ("1Hour", timedelta(days=7)),
-        "1mo": ("1Day", timedelta(days=30)),
+        "1d": ("5Min", timedelta(days=2)),        # 2 days of 5-minute data for 1d view (more detailed than 15m)
+        "1w": ("30Min", timedelta(days=10)),      # 10 days of 30-minute data for 1w view (more data, less gaps)
+        "1mo": ("1Hour", timedelta(days=45)),     # 45 days of 1-hour data for 1mo view (more data, less gaps)
         "1y": ("1Day", timedelta(days=365)),
     }
     tf_str, delta = period_map.get(period, period_map["1y"])
@@ -59,10 +60,32 @@ def create_chart(ticker: str, period: str = "1y", end_date: Union[str, datetime]
     title = f"{ticker} - {period.upper()} Chart"
     if end_date:
         title += f" (as of {pd.to_datetime(end_date).date()})"
+    
+    # Improved layout with better gap handling - different rangebreaks for different timeframes
+    rangebreaks = []
+    if "/" not in ticker:  # Only apply to stocks, not crypto
+        if period in ["15m", "1d"]:
+            # For intraday charts, hide non-trading hours
+            rangebreaks = [
+                dict(bounds=["sat", "mon"]),  # Hide weekends
+                dict(bounds=[20, 9.5], pattern="hour"),  # Hide non-trading hours (8PM to 9:30AM)
+            ]
+        elif period in ["1w", "1mo"]:
+            # For weekly/monthly charts, only hide weekends
+            rangebreaks = [
+                dict(bounds=["sat", "mon"]),  # Hide weekends
+            ]
+        # For 1y charts, no rangebreaks to avoid issues with daily data
+    
     fig.update_layout(
         title=title,
         template="plotly_white",
         xaxis_rangeslider_visible=False,
+        xaxis=dict(
+            type='date',
+            rangeslider_visible=False,
+            rangebreaks=rangebreaks
+        ),
         yaxis_title='Price',
         yaxis2=dict(title='Volume', overlaying='y', side='right', showgrid=False),
         height=400,
@@ -74,8 +97,8 @@ def create_chart(ticker: str, period: str = "1y", end_date: Union[str, datetime]
 
 def create_demo_chart(ticker, period="1y", end_date=None, error_msg=None):
     """Create a demo chart with random walk data"""
-    # Determine number of points
-    points_map = {"15m":160, "1d":24, "1w":30, "1mo":60, "1y":252}
+    # Updated points mapping to reflect new timeframes
+    points_map = {"15m":160, "1d":96, "1w":48, "1mo":90, "1y":252}  # Updated 1d to reflect 5Min data
     points = points_map.get(period, 252)
     title_map = {
         "15m": "15 Minutes", "1d": "1 Day",
@@ -103,10 +126,37 @@ def create_demo_chart(ticker, period="1y", end_date=None, error_msg=None):
     fig.add_trace(go.Bar(x=dates, y=vols, name='Volume', yaxis='y2', opacity=0.3))
     # Add candlestick trace on top
     fig.add_trace(go.Candlestick(x=dates, open=opens, high=highs, low=lows, close=closes, name='Price'))
+    
+    # Apply the same improved layout with gap handling - different rangebreaks for different timeframes
+    rangebreaks = []
+    if "/" not in ticker:  # Only apply to stocks, not crypto
+        if period in ["15m", "1d"]:
+            # For intraday charts, hide non-trading hours
+            rangebreaks = [
+                dict(bounds=["sat", "mon"]),  # Hide weekends
+                dict(bounds=[20, 9.5], pattern="hour"),  # Hide non-trading hours (8PM to 9:30AM)
+            ]
+        elif period in ["1w", "1mo"]:
+            # For weekly/monthly charts, only hide weekends
+            rangebreaks = [
+                dict(bounds=["sat", "mon"]),  # Hide weekends
+            ]
+        # For 1y charts, no rangebreaks to avoid issues with daily data
+    
     fig.update_layout(
-        title=title, template="plotly_white", xaxis_rangeslider_visible=False,
-        yaxis_title='Price', yaxis2=dict(title='Volume', overlaying='y', side='right'),
-        height=400, margin=dict(l=40,r=40,t=40,b=40), autosize=True
+        title=title, 
+        template="plotly_white", 
+        xaxis_rangeslider_visible=False,
+        xaxis=dict(
+            type='date',
+            rangeslider_visible=False,
+            rangebreaks=rangebreaks
+        ),
+        yaxis_title='Price', 
+        yaxis2=dict(title='Volume', overlaying='y', side='right'),
+        height=400, 
+        margin=dict(l=40,r=40,t=40,b=40), 
+        autosize=True
     )
     if error_msg:
         fig.add_annotation(x=0.5,y=0.1,xref='paper',yref='paper',text=f"DEMO DATA: {error_msg}",

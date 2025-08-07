@@ -73,6 +73,9 @@ def timing_wrapper(analyst_type):
                 result_summary = result
                 
                 # Store the complete tool call information including the output
+                # Get current symbol from app_state for filtering
+                current_symbol = getattr(app_state, 'analyzing_symbol', None) or getattr(app_state, 'current_symbol', None)
+                
                 tool_call_info = {
                     "timestamp": timestamp,
                     "tool_name": tool_name,
@@ -80,7 +83,8 @@ def timing_wrapper(analyst_type):
                     "output": result_summary,
                     "execution_time": f"{elapsed:.2f}s",
                     "status": "success",
-                    "agent_type": analyst_type  # Add agent type for filtering
+                    "agent_type": analyst_type,  # Add agent type for filtering
+                    "symbol": current_symbol  # Add symbol for filtering
                 }
                 
                 app_state.tool_calls_log.append(tool_call_info)
@@ -100,6 +104,9 @@ def timing_wrapper(analyst_type):
                     import datetime
                     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
                     
+                    # Get current symbol from app_state for filtering
+                    current_symbol = getattr(app_state, 'analyzing_symbol', None) or getattr(app_state, 'current_symbol', None)
+                    
                     tool_call_info = {
                         "timestamp": timestamp,
                         "tool_name": tool_name,
@@ -107,7 +114,8 @@ def timing_wrapper(analyst_type):
                         "output": f"ERROR: {str(e)}",
                         "execution_time": f"{elapsed:.2f}s",
                         "status": "error",
-                        "agent_type": analyst_type  # Add agent type for filtering
+                        "agent_type": analyst_type,  # Add agent type for filtering
+                        "symbol": current_symbol  # Add symbol for filtering
                     }
                     
                     app_state.tool_calls_log.append(tool_call_info)

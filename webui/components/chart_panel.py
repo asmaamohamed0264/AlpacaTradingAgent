@@ -35,7 +35,6 @@ def create_chart_panel():
             html.Div(id="current-symbol-display", className="text-center my-2"),
             html.Div(id="chart-last-updated", className="text-muted text-center small mb-2"),
             dbc.ButtonGroup([
-                dbc.Button("15M", id="period-15m", color="secondary", outline=True, className="me-1"),
                 dbc.Button("1D", id="period-1d", color="secondary", outline=True, className="me-1"),
                 dbc.Button("1W", id="period-1w", color="secondary", outline=True, className="me-1"),
                 dbc.Button("1M", id="period-1mo", color="secondary", outline=True, className="me-1"),

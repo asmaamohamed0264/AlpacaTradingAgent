@@ -974,8 +974,11 @@ def register_report_callbacks(app):
                     if report_type:
                         from webui.components.tool_outputs_modal import format_tool_outputs_content
                         
-                        # Get tool calls from app state filtered by agent type
-                        tool_calls = app_state.get_tool_calls_for_display(agent_filter=report_type)
+                        # Get current symbol for filtering
+                        current_symbol = app_state.current_symbol
+                        
+                        # Get tool calls from app state filtered by agent type and symbol
+                        tool_calls = app_state.get_tool_calls_for_display(agent_filter=report_type, symbol_filter=current_symbol)
                         formatted_content = format_tool_outputs_content(tool_calls, report_type)
                         
                         # Create a nice title

@@ -19,6 +19,23 @@ from openai import OpenAI
 from .config import get_config, set_config, DATA_DIR, get_api_key
 
 
+def get_model_params(model_name):
+    """Get appropriate parameters for different model types."""
+    params = {}
+    
+    # Models that don't support temperature parameter
+    no_temp_models = ["o3", "o4-mini", "gpt-5", "gpt-5-mini", "gpt-5-nano"]
+    
+    if not any(model_prefix in model_name for model_prefix in no_temp_models):
+        params["temperature"] = 0.2
+    
+    # Note: GPT-5 specific parameters like effort, verbosity, format are not yet 
+    # supported by the current OpenAI Python client library.
+    # These will be added when the client library is updated to support them.
+    
+    return params
+
+
 def get_finnhub_news(
     ticker: Annotated[
         str,
@@ -549,6 +566,9 @@ def get_stock_news_openai(ticker, curr_date):
         from datetime import datetime, timedelta
         start_date = (datetime.strptime(curr_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d")
 
+        # Get model-specific parameters
+        model_params = get_model_params(model)
+        
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -566,8 +586,8 @@ def get_stock_news_openai(ticker, curr_date):
                              f"5. Summary table with key metrics"
                 }
             ],
-            temperature=0.2,
-            max_tokens=3000
+            max_tokens=3000,
+            **model_params
         )
 
         return response.choices[0].message.content
@@ -591,6 +611,9 @@ def get_global_news_openai(curr_date):
         from datetime import datetime, timedelta
         start_date = (datetime.strptime(curr_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d")
 
+        # Get model-specific parameters
+        model_params = get_model_params(model)
+        
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -609,8 +632,8 @@ def get_global_news_openai(curr_date):
                              f"6. Summary table with key events and impact levels"
                 }
             ],
-            temperature=0.2,
-            max_tokens=3000
+            max_tokens=3000,
+            **model_params
         )
 
         return response.choices[0].message.content
@@ -634,6 +657,9 @@ def get_fundamentals_openai(ticker, curr_date):
         from datetime import datetime, timedelta
         start_date = (datetime.strptime(curr_date, "%Y-%m-%d") - timedelta(days=30)).strftime("%Y-%m-%d")
 
+        # Get model-specific parameters
+        model_params = get_model_params(model)
+        
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -655,8 +681,8 @@ def get_fundamentals_openai(ticker, curr_date):
                              f"Format the analysis professionally with clear sections and include a summary table at the end."
                 }
             ],
-            temperature=0.2,
-            max_tokens=3000
+            max_tokens=3000,
+            **model_params
         )
 
         return response.choices[0].message.content

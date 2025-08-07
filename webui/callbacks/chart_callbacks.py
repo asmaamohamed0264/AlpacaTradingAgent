@@ -120,8 +120,7 @@ def register_chart_callbacks(app):
         [Output("chart-container", "figure"),
          Output("current-symbol-display", "children"),
          Output("chart-store", "data")],
-        [Input("period-15m", "n_clicks"),
-         Input("period-1d", "n_clicks"),
+        [Input("period-1d", "n_clicks"),
          Input("period-1w", "n_clicks"),
          Input("period-1mo", "n_clicks"),
          Input("period-1y", "n_clicks"),
@@ -129,7 +128,7 @@ def register_chart_callbacks(app):
          Input("manual-chart-refresh", "n_clicks")],
         [State("chart-store", "data")]
     )
-    def update_chart(n_15m, n_1d, n_1w, n_1mo, n_1y, active_page, manual_refresh, chart_store_data):
+    def update_chart(n_1d, n_1w, n_1mo, n_1y, active_page, manual_refresh, chart_store_data):
         """Update the chart based on period selection or ticker change"""
         # print(f"[CHART] Called with active_page={active_page}, symbol_states={list(app_state.symbol_states.keys()) if app_state.symbol_states else []}")
         
@@ -152,7 +151,6 @@ def register_chart_callbacks(app):
 
         # Default period handling
         period_map = {
-            "period-15m.n_clicks": "15m",
             "period-1d.n_clicks": "1d",
             "period-1w.n_clicks": "1w",
             "period-1mo.n_clicks": "1mo",
@@ -204,23 +202,22 @@ def register_chart_callbacks(app):
             return ""
 
     @app.callback(
-        [Output("period-15m", "active"),
-         Output("period-1d", "active"),
+        [Output("period-1d", "active"),
          Output("period-1w", "active"),
          Output("period-1mo", "active"),
          Output("period-1y", "active")],
-        [Input("period-15m", "n_clicks"),
-         Input("period-1d", "n_clicks"),
+        [Input("period-1d", "n_clicks"),
          Input("period-1w", "n_clicks"),
          Input("period-1mo", "n_clicks"),
          Input("period-1y", "n_clicks")]
     )
-    def update_active_period_button(n_15m, n_1d, n_1w, n_1mo, n_1y):
+    def update_active_period_button(n_1d, n_1w, n_1mo, n_1y):
         """Update which period button is active"""
         button_id = ctx.triggered_id if ctx.triggered_id else "period-1y"
         
         return (
-            button_id == "period-15m", button_id == "period-1d",
-            button_id == "period-1w", button_id == "period-1mo",
+            button_id == "period-1d",
+            button_id == "period-1w", 
+            button_id == "period-1mo",
             button_id == "period-1y"
         ) 

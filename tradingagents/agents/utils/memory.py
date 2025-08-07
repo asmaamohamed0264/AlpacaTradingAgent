@@ -15,6 +15,16 @@ class FinancialSituationMemory:
 
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
+        # Truncate text if it exceeds the model's token limit
+        # text-embedding-ada-002 has a max context length of 8192 tokens
+        # Conservative estimate: ~3 characters per token for safety margin
+        max_chars = 24000  # ~8000 tokens * 3 chars/token
+        if len(text) > max_chars:
+            # Take first part and last part to preserve both beginning and end context
+            half_chars = max_chars // 2
+            text = text[:half_chars] + "\n...[TRUNCATED]...\n" + text[-half_chars:]
+            print(f"[MEMORY] Warning: Text truncated to ~{max_chars} characters for embedding")
+        
         response = self.client.embeddings.create(
             model="text-embedding-ada-002", input=text
         )
