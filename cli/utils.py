@@ -127,11 +127,13 @@ def select_shallow_thinking_agent() -> str:
 
     # Define shallow thinking llm engine options with their corresponding model names
     SHALLOW_AGENT_OPTIONS = [
-        ("GPT-4.1 - Flagship GPT model for complex tasks", "gpt-4.1"),
-        ("GPT-4o-mini - Fast and efficient for quick tasks", "gpt-4o-mini"),
-        ("GPT-4.1-nano - Ultra-lightweight model for basic operations", "gpt-4.1-nano"),
-        ("GPT-4.1-mini - Compact model with good performance", "gpt-4.1-mini"),
-        ("GPT-4o - Standard model with solid capabilities", "gpt-4o"),
+        ("GPT-5-nano - Ultra-efficient model for lightweight tasks", "gpt-5-nano"),
+        ("GPT-5-mini - Streamlined model balancing speed and capability", "gpt-5-mini"),
+        ("GPT-4.1 - Proven flagship model for complex operations", "gpt-4.1"),
+        ("GPT-4.1-mini - Compact variant with strong performance", "gpt-4.1-mini"),
+        ("GPT-4.1-nano - Minimalist model for basic automation", "gpt-4.1-nano"),
+        ("GPT-4o - Versatile model for general-purpose reasoning", "gpt-4o"),
+        ("GPT-4o-mini - Optimized for speed and efficiency in simple tasks", "gpt-4o-mini"),
     ]
 
     choice = questionary.select(
@@ -164,14 +166,17 @@ def select_deep_thinking_agent() -> str:
 
     # Define deep thinking llm engine options with their corresponding model names
     DEEP_AGENT_OPTIONS = [
-        ("GPT-4.1 - Flagship GPT model for complex tasks", "gpt-4.1"),
-        ("GPT-4.1-nano - Ultra-lightweight model for basic operations", "gpt-4.1-nano"),
-        ("GPT-4.1-mini - Compact model with good performance", "gpt-4.1-mini"),
-        ("GPT-4o - Standard model with solid capabilities", "gpt-4o"),
-        ("o4-mini - Specialized reasoning model (compact)", "o4-mini"),
-        ("o3-mini - Advanced reasoning model (lightweight)", "o3-mini"),
-        ("o3 - Full advanced reasoning model", "o3"),
-        ("o1 - Premier reasoning and problem-solving model", "o1"),
+        ("GPT-5 - Next-gen flagship model for high-complexity tasks", "gpt-5"),
+        ("GPT-5-mini - Streamlined model balancing speed and capability", "gpt-5-mini"),
+        ("GPT-5-nano - Ultra-efficient model for lightweight tasks", "gpt-5-nano"),
+        ("GPT-4.1 - Proven flagship model for complex operations", "gpt-4.1"),
+        ("GPT-4.1-mini - Compact variant with strong performance", "gpt-4.1-mini"),
+        ("GPT-4.1-nano - Minimalist model for basic automation", "gpt-4.1-nano"),
+        ("GPT-4o - Versatile model for general-purpose reasoning", "gpt-4o"),
+        ("o4-mini - Lightweight reasoning model optimized for structure", "o4-mini"),
+        ("o3-mini - High-efficiency reasoning model", "o3-mini"),
+        ("o3 - Full-capability advanced reasoning model", "o3"),
+        ("o1 - Top-tier expert model for problem-solving", "o1"),
     ]
 
     choice = questionary.select(
