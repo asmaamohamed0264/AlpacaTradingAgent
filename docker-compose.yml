@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: alpaca-trading-agent:web
+    container_name: alpaca-trading-agent-web
+    env_file:
+      - .env
+    environment:
+      - PORT=7860
+      # Optional: override server name/threads/debug via env if desired
+      # - SERVER_NAME=0.0.0.0
+      # - MAX_THREADS=40
+      # - DEBUG=false
+    ports:
+      - "7860:7860"
+    restart: unless-stopped
+    command: ["python", "run_webui_dash.py", "--server-name", "0.0.0.0", "--port", "7860"]
+    volumes:
+      - data-cache:/app/tradingagents/dataflows/data_cache
+
+volumes:
+  data-cache:
+
+
