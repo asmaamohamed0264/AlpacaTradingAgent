@@ -16,7 +16,7 @@ services:
       # - MAX_THREADS=40
       # - DEBUG=false
     ports:
-      - "7860:7860"
+      - "127.0.0.1:7860:7860"
     restart: unless-stopped
     command: ["python", "run_webui_dash.py", "--server-name", "0.0.0.0", "--port", "7860"]
     volumes:
