@@ -11,18 +11,15 @@ services:
       - .env
     environment:
       - PORT=7860
-      # Optional: override server name/threads/debug via env if desired
-      # - SERVER_NAME=0.0.0.0
-      # - MAX_THREADS=40
-      # - DEBUG=false
+      - TZ=America/New_York        # <-- set container timezone
     ports:
       - "127.0.0.1:7860:7860"
     restart: unless-stopped
     command: ["python", "run_webui_dash.py", "--server-name", "0.0.0.0", "--port", "7860"]
     volumes:
       - data-cache:/app/tradingagents/dataflows/data_cache
+      - /etc/localtime:/etc/localtime:ro   # <-- sync container clock with host
+      - /etc/timezone:/etc/timezone:ro     # <-- propagate host timezone name
 
 volumes:
   data-cache:
-
-
