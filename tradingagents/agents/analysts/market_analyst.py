@@ -22,7 +22,20 @@ def create_market_analyst(llm, toolkit):
         is_crypto = "/" in ticker or "USD" in ticker.upper() or "USDT" in ticker.upper()
 
         if is_crypto:
-            tools = [toolkit.get_coindesk_news]
+            # Crypto gets the same data tools as stocks since Alpaca supports crypto
+            if toolkit.config["online_tools"]:
+                tools = [
+                    toolkit.get_alpaca_data,  # Alpaca supports crypto price data
+                    toolkit.get_indicators_table,
+                    toolkit.get_stockstats_indicators_report_online,
+                    toolkit.get_coindesk_news  # Plus crypto-specific news
+                ]
+            else:
+                tools = [
+                    toolkit.get_alpaca_data_report,  # Alpaca supports crypto price data
+                    toolkit.get_stockstats_indicators_report,
+                    toolkit.get_coindesk_news  # Plus crypto-specific news
+                ]
         elif toolkit.config["online_tools"]:
             tools = [
                 toolkit.get_stock_data_table,

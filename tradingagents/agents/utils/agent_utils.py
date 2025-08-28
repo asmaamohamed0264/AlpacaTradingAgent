@@ -459,12 +459,12 @@ class Toolkit:
     @staticmethod
     @tool
     def get_coindesk_news(
-        ticker: Annotated[str, "Ticker symbol, e.g. 'BTCUSD', 'ETH', etc."],
+        ticker: Annotated[str, "Ticker symbol, e.g. 'BTC/USD', 'ETH/USD', 'ETH', etc."],
         num_sentences: Annotated[int, "Number of sentences to include from news body."] = 5,
     ):
         """
         Retrieve news for a cryptocurrency.
-        This function checks if the ticker is a crypto pair (like BTCUSD) and extracts the base currency.
+        This function checks if the ticker is a crypto pair (like BTC/USD) and extracts the base currency.
         Then it fetches news for that cryptocurrency from CryptoCompare.
 
         Args:
@@ -598,7 +598,7 @@ class Toolkit:
         For crypto: Shows major protocol events, upgrades, and announcements that could impact price.
         
         Args:
-            ticker (str): Stock ticker (e.g. AAPL, TSLA) or crypto ticker (e.g. BTCUSD, ETH, SOL)
+            ticker (str): Stock ticker (e.g. AAPL, TSLA) or crypto ticker (e.g. BTC/USD, ETH/USD, SOL/USD)
             start_date (str): Start date in yyyy-mm-dd format
             end_date (str): End date in yyyy-mm-dd format
             

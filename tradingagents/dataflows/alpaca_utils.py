@@ -413,8 +413,7 @@ class AlpacaUtils:
             positions = client.get_all_positions()
 
             # Normalise the requested symbol for comparisons – Alpaca symbols
-            # for crypto are often returned without the "/" (e.g. "BTCUSD"), so
-            # we remove it for the comparison.
+            # for crypto may use different formats, so we normalize for position comparison only.
             requested_symbol_key = symbol.upper().replace("/", "")
 
             for pos in positions:

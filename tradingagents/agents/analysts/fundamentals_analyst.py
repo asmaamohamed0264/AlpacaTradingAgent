@@ -28,7 +28,7 @@ def create_fundamentals_analyst(llm, toolkit):
             is_crypto = "/" in ticker or "USD" in ticker.upper() or "USDT" in ticker.upper()
             # print(f"[FUNDAMENTALS] Detected asset type: {'Cryptocurrency' if is_crypto else 'Stock'}")
             
-            # Extract base ticker for cryptocurrencies (BTC from BTC/USD, BTCUSD, or BTCUSDT)
+            # Extract base ticker for cryptocurrencies (BTC from BTC/USD or BTCUSDT)
             display_ticker = ticker
             if is_crypto:
                 # Remove USD, USDT or anything after /

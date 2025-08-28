@@ -19,19 +19,28 @@ from openai import OpenAI
 from .config import get_config, set_config, DATA_DIR, get_api_key
 
 
-def get_model_params(model_name):
+def get_model_params(model_name, max_tokens_value=3000):
     """Get appropriate parameters for different model types."""
     params = {}
     
-    # Models that don't support temperature parameter
-    no_temp_models = ["o3", "o4-mini", "gpt-5", "gpt-5-mini", "gpt-5-nano"]
+    # GPT-5 and GPT-4.1 models use the responses.create() API 
+    # Older models use the standard chat.completions.create() API
+    gpt5_models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
+    gpt41_models = ["gpt-4.1"]
     
-    if not any(model_prefix in model_name for model_prefix in no_temp_models):
+    if any(model_prefix in model_name for model_prefix in gpt5_models):
+        # GPT-5 models: use responses.create() API with no token parameters
+        # Token limits are handled by the model automatically
+        pass  # No additional parameters needed for GPT-5
+    elif any(model_prefix in model_name for model_prefix in gpt41_models):
+        # GPT-4.1 models: use responses.create() API with specific parameters
         params["temperature"] = 0.2
-    
-    # Note: GPT-5 specific parameters like effort, verbosity, format are not yet 
-    # supported by the current OpenAI Python client library.
-    # These will be added when the client library is updated to support them.
+        params["max_output_tokens"] = max_tokens_value
+        params["top_p"] = 1
+    else:
+        # Standard models (GPT-4, etc.)
+        params["temperature"] = 0.2
+        params["max_tokens"] = max_tokens_value
     
     return params
 
@@ -162,12 +171,12 @@ def get_finnhub_company_insider_transactions(
 
 
 def get_coindesk_news(
-    ticker: Annotated[str, "Ticker symbol, e.g. 'BTCUSD', 'ETH', etc."],
+    ticker: Annotated[str, "Ticker symbol, e.g. 'BTC/USD', 'ETH/USD', 'ETH', etc."],
     num_sentences: Annotated[int, "Number of sentences to include from news body."] = 5,
 ) -> str:
     """
     Retrieve news for a cryptocurrency.
-    This function checks if the ticker is a crypto pair (like BTCUSD) and extracts the base currency.
+    This function checks if the ticker is a crypto pair (like BTC/USD) and extracts the base currency.
     Then it fetches news for that cryptocurrency from CryptoCompare.
 
     Args:
@@ -569,28 +578,143 @@ def get_stock_news_openai(ticker, curr_date):
         # Get model-specific parameters
         model_params = get_model_params(model)
         
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a financial research assistant. Provide comprehensive social media sentiment analysis and recent news about the specified stock ticker. Focus on sentiment trends, key discussions, and any notable developments."
-                },
-                {
-                    "role": "user",
-                    "content": f"Analyze social media sentiment and recent news for {ticker} from {start_date} to {curr_date}. Include:\n"
-                             f"1. Overall sentiment analysis\n"
-                             f"2. Key themes and discussions\n"
-                             f"3. Notable price-moving news or events\n"
-                             f"4. Trading implications based on sentiment\n"
-                             f"5. Summary table with key metrics"
+        # Check if this is a GPT-5 or GPT-4.1 model (both use responses.create())
+        gpt5_models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
+        gpt41_models = ["gpt-4.1"]
+        is_gpt5 = any(model_prefix in model for model_prefix in gpt5_models)
+        is_gpt41 = any(model_prefix in model for model_prefix in gpt41_models)
+        
+        if is_gpt5 or is_gpt41:
+            # Use responses.create() API with web search capabilities
+            user_message = f"Search the web and analyze current social media sentiment and recent news for {ticker} from {start_date} to {curr_date}. Include:\n" + \
+                          f"1. Overall sentiment analysis from recent social media posts\n" + \
+                          f"2. Key themes and discussions happening now\n" + \
+                          f"3. Notable price-moving news or events from the past week\n" + \
+                          f"4. Trading implications based on current sentiment\n" + \
+                          f"5. Summary table with key metrics"
+            
+            # Base parameters for responses.create()
+            if is_gpt5:
+                # GPT-5 uses "developer" role
+                api_params = {
+                    "model": model,
+                    "input": [
+                        {
+                            "role": "developer",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "You are a financial research assistant with web search access. Use real-time web search to provide comprehensive social media sentiment analysis and recent news about the specified stock ticker. Focus on sentiment trends, key discussions, and any notable developments."
+                                }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": user_message
+                                }
+                            ]
+                        }
+                    ],
+                    "text": {"format": {"type": "text"}, "verbosity": "medium"},
+                    "reasoning": {"effort": "medium", "summary": "auto"},
+                    "tools": [{
+                        "type": "web_search",
+                        "user_location": {"type": "approximate"},
+                        "search_context_size": "medium"
+                    }],
+                    "store": True,
+                    "include": ["reasoning.encrypted_content", "web_search_call.action.sources"]
                 }
-            ],
-            max_tokens=3000,
-            **model_params
-        )
+            elif is_gpt41:
+                # GPT-4.1 uses "system" role  
+                api_params = {
+                    "model": model,
+                    "input": [
+                        {
+                            "role": "system",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "You are a financial research assistant with web search access. Use real-time web search to provide comprehensive social media sentiment analysis and recent news about the specified stock ticker. Focus on sentiment trends, key discussions, and any notable developments."
+                                }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": user_message
+                                }
+                            ]
+                        }
+                    ],
+                    "text": {"format": {"type": "text"}},
+                    "reasoning": {},
+                    "tools": [{
+                        "type": "web_search",
+                        "user_location": {"type": "approximate"},
+                        "search_context_size": "medium"
+                    }],
+                    "store": True,
+                    "include": ["web_search_call.action.sources"]
+                }
+                api_params.update(model_params)  # Add temperature, max_output_tokens, top_p
+            
+            response = client.responses.create(**api_params)
+        else:
+            # Use standard chat completions API for GPT-4 and other models
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a financial research assistant. Provide comprehensive social media sentiment analysis and recent news about the specified stock ticker. Focus on sentiment trends, key discussions, and any notable developments."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Analyze social media sentiment and recent news for {ticker} from {start_date} to {curr_date}. Include:\n"
+                                 f"1. Overall sentiment analysis\n"
+                                 f"2. Key themes and discussions\n"
+                                 f"3. Notable price-moving news or events\n"
+                                 f"4. Trading implications based on sentiment\n"
+                                 f"5. Summary table with key metrics"
+                    }
+                ],
+                **model_params
+            )
 
-        return response.choices[0].message.content
+        # Parse response based on API type
+        if is_gpt5 or is_gpt41:
+            # Extract content from GPT-5 responses.create() structure
+            content = None
+            if hasattr(response, 'output_text') and response.output_text:
+                content = response.output_text
+            elif hasattr(response, 'output') and response.output:
+                # Navigate through output array to find text content
+                for item in response.output:
+                    if hasattr(item, 'content') and item.content:
+                        for content_item in item.content:
+                            if hasattr(content_item, 'text'):
+                                content = content_item.text
+                                break
+                        if content:
+                            break
+                if not content:
+                    content = str(response.output)
+            else:
+                content = str(response)
+        else:
+            content = response.choices[0].message.content  # Standard chat.completions.create() structure
+        
+        # Check if content is empty
+        if not content or content.strip() == "":
+            return f"Error: Empty response from model {model}. This may indicate the model used all tokens for reasoning."
+        
+        return content
     except Exception as e:
         return f"Error fetching social media analysis for {ticker}: {str(e)}"
 
@@ -614,29 +738,145 @@ def get_global_news_openai(curr_date):
         # Get model-specific parameters
         model_params = get_model_params(model)
         
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a financial news analyst. Provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
-                },
-                {
-                    "role": "user",
-                    "content": f"Analyze global and macroeconomic news from {start_date} to {curr_date} that would be informative for trading purposes. Include:\n"
-                             f"1. Major economic events and announcements\n"
-                             f"2. Central bank policy updates\n"
-                             f"3. Geopolitical developments affecting markets\n"
-                             f"4. Economic data releases and their implications\n"
-                             f"5. Trading implications and market sentiment\n"
-                             f"6. Summary table with key events and impact levels"
+        # Check if this is a GPT-5 or GPT-4.1 model (both use responses.create())
+        gpt5_models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
+        gpt41_models = ["gpt-4.1"]
+        is_gpt5 = any(model_prefix in model for model_prefix in gpt5_models)
+        is_gpt41 = any(model_prefix in model for model_prefix in gpt41_models)
+        
+        if is_gpt5 or is_gpt41:
+            # Use responses.create() API with web search capabilities
+            user_message = f"Search the web for current global and macroeconomic news from {start_date} to {curr_date} that would be informative for trading purposes. Include:\n" + \
+                          f"1. Major economic events and announcements\n" + \
+                          f"2. Central bank policy updates\n" + \
+                          f"3. Geopolitical developments affecting markets\n" + \
+                          f"4. Economic data releases and their implications\n" + \
+                          f"5. Trading implications and market sentiment\n" + \
+                          f"6. Summary table with key events and impact levels"
+            
+            # Base parameters for responses.create()
+            if is_gpt5:
+                # GPT-5 uses "developer" role
+                api_params = {
+                    "model": model,
+                    "input": [
+                        {
+                            "role": "developer",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "You are a financial news analyst with web search access. Use real-time web search to provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
+                                }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": user_message
+                                }
+                            ]
+                        }
+                    ],
+                    "text": {"format": {"type": "text"}, "verbosity": "medium"},
+                    "reasoning": {"effort": "medium", "summary": "auto"},
+                    "tools": [{
+                        "type": "web_search",
+                        "user_location": {"type": "approximate"},
+                        "search_context_size": "medium"
+                    }],
+                    "store": True,
+                    "include": ["reasoning.encrypted_content", "web_search_call.action.sources"]
                 }
-            ],
-            max_tokens=3000,
-            **model_params
-        )
+            elif is_gpt41:
+                # GPT-4.1 uses "system" role  
+                api_params = {
+                    "model": model,
+                    "input": [
+                        {
+                            "role": "system",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "You are a financial news analyst with web search access. Use real-time web search to provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
+                                }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": user_message
+                                }
+                            ]
+                        }
+                    ],
+                    "text": {"format": {"type": "text"}},
+                    "reasoning": {},
+                    "tools": [{
+                        "type": "web_search",
+                        "user_location": {"type": "approximate"},
+                        "search_context_size": "medium"
+                    }],
+                    "store": True,
+                    "include": ["web_search_call.action.sources"]
+                }
+                api_params.update(model_params)  # Add temperature, max_output_tokens, top_p
+            
+            response = client.responses.create(**api_params)
+        else:
+            # Use standard chat completions API for GPT-4 and other models
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a financial news analyst. Provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Analyze global and macroeconomic news from {start_date} to {curr_date} that would be informative for trading purposes. Include:\n"
+                                 f"1. Major economic events and announcements\n"
+                                 f"2. Central bank policy updates\n"
+                                 f"3. Geopolitical developments affecting markets\n"
+                                 f"4. Economic data releases and their implications\n"
+                                 f"5. Trading implications and market sentiment\n"
+                                 f"6. Summary table with key events and impact levels"
+                    }
+                ],
+                **model_params
+            )
 
-        return response.choices[0].message.content
+        # Parse response based on API type
+        if is_gpt5 or is_gpt41:
+            # Extract content from GPT-5 responses.create() structure
+            content = None
+            if hasattr(response, 'output_text') and response.output_text:
+                content = response.output_text
+            elif hasattr(response, 'output') and response.output:
+                # Navigate through output array to find text content
+                for item in response.output:
+                    if hasattr(item, 'content') and item.content:
+                        for content_item in item.content:
+                            if hasattr(content_item, 'text'):
+                                content = content_item.text
+                                break
+                        if content:
+                            break
+                if not content:
+                    content = str(response.output)
+            else:
+                content = str(response)
+        else:
+            content = response.choices[0].message.content  # Standard chat.completions.create() structure
+        
+        # Check if content is empty
+        if not content or content.strip() == "":
+            return f"Error: Empty response from model {model}. This may indicate the model used all tokens for reasoning."
+        
+        return content
     except Exception as e:
         return f"Error fetching global news analysis: {str(e)}"
 
@@ -660,32 +900,147 @@ def get_fundamentals_openai(ticker, curr_date):
         # Get model-specific parameters
         model_params = get_model_params(model)
         
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a fundamental analyst specializing in financial analysis and valuation. Provide comprehensive fundamental analysis based on available financial metrics and recent company developments."
-                },
-                {
-                    "role": "user",
-                    "content": f"Provide a fundamental analysis for {ticker} covering the period from {start_date} to {curr_date}. Include:\n"
-                             f"1. Key financial metrics (P/E, P/S, P/B, EV/EBITDA, etc.)\n"
-                             f"2. Revenue and earnings trends\n"
-                             f"3. Cash flow analysis\n"
-                             f"4. Balance sheet strength\n"
-                             f"5. Competitive positioning\n"
-                             f"6. Recent business developments\n"
-                             f"7. Valuation assessment\n"
-                             f"8. Summary table with key fundamental metrics and ratios\n\n"
-                             f"Format the analysis professionally with clear sections and include a summary table at the end."
+        # Check if this is a GPT-5 or GPT-4.1 model (both use responses.create())
+        gpt5_models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
+        gpt41_models = ["gpt-4.1"]
+        is_gpt5 = any(model_prefix in model for model_prefix in gpt5_models)
+        is_gpt41 = any(model_prefix in model for model_prefix in gpt41_models)
+        
+        if is_gpt5 or is_gpt41:
+            # Use responses.create() API with web search capabilities
+            user_message = f"Search the web and provide a current fundamental analysis for {ticker} covering the period from {start_date} to {curr_date}. Include:\n" + \
+                          f"1. Key financial metrics (P/E, P/S, P/B, EV/EBITDA, etc.)\n" + \
+                          f"2. Revenue and earnings trends\n" + \
+                          f"3. Cash flow analysis\n" + \
+                          f"4. Balance sheet strength\n" + \
+                          f"5. Competitive positioning\n" + \
+                          f"6. Recent business developments\n" + \
+                          f"7. Valuation assessment\n" + \
+                          f"8. Summary table with key fundamental metrics and ratios\n\n" + \
+                          f"Format the analysis professionally with clear sections and include a summary table at the end."
+            
+            # Base parameters for responses.create()
+            if is_gpt5:
+                # GPT-5 uses "developer" role
+                api_params = {
+                    "model": model,
+                    "input": [
+                        {
+                            "role": "developer",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "You are a fundamental analyst with web search access specializing in financial analysis and valuation. Use real-time web search to provide comprehensive fundamental analysis based on available financial metrics and recent company developments."
+                                }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": user_message
+                                }
+                            ]
+                        }
+                    ],
+                    "text": {"format": {"type": "text"}, "verbosity": "medium"},
+                    "reasoning": {"effort": "medium", "summary": "auto"},
+                    "tools": [{
+                        "type": "web_search",
+                        "user_location": {"type": "approximate"},
+                        "search_context_size": "medium"
+                    }],
+                    "store": True,
+                    "include": ["reasoning.encrypted_content", "web_search_call.action.sources"]
                 }
-            ],
-            max_tokens=3000,
-            **model_params
-        )
+            elif is_gpt41:
+                # GPT-4.1 uses "system" role  
+                api_params = {
+                    "model": model,
+                    "input": [
+                        {
+                            "role": "system",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "You are a fundamental analyst with web search access specializing in financial analysis and valuation. Use real-time web search to provide comprehensive fundamental analysis based on available financial metrics and recent company developments."
+                                }
+                            ]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": user_message
+                                }
+                            ]
+                        }
+                    ],
+                    "text": {"format": {"type": "text"}},
+                    "reasoning": {},
+                    "tools": [{
+                        "type": "web_search",
+                        "user_location": {"type": "approximate"},
+                        "search_context_size": "medium"
+                    }],
+                    "store": True,
+                    "include": ["web_search_call.action.sources"]
+                }
+                api_params.update(model_params)  # Add temperature, max_output_tokens, top_p
+            
+            response = client.responses.create(**api_params)
+        else:
+            # Use standard chat completions API for GPT-4 and other models
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a fundamental analyst specializing in financial analysis and valuation. Provide comprehensive fundamental analysis based on available financial metrics and recent company developments."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Provide a fundamental analysis for {ticker} covering the period from {start_date} to {curr_date}. Include:\n"
+                                 f"1. Key financial metrics (P/E, P/S, P/B, EV/EBITDA, etc.)\n"
+                                 f"2. Revenue and earnings trends\n"
+                                 f"3. Cash flow analysis\n"
+                                 f"4. Balance sheet strength\n"
+                                 f"5. Competitive positioning\n"
+                                 f"6. Recent business developments\n"
+                                 f"7. Valuation assessment\n"
+                                 f"8. Summary table with key fundamental metrics and ratios\n\n"
+                                 f"Format the analysis professionally with clear sections and include a summary table at the end."
+                    }
+                ],
+                **model_params
+            )
 
-        return response.choices[0].message.content
+        # Parse response based on API type
+        if is_gpt5 or is_gpt41:
+            # Extract content from GPT-5 responses.create() structure
+            content = None
+            if hasattr(response, 'output_text') and response.output_text:
+                content = response.output_text
+            elif hasattr(response, 'output') and response.output:
+                # Navigate through output array to find text content
+                for item in response.output:
+                    if hasattr(item, 'content') and item.content:
+                        for content_item in item.content:
+                            if hasattr(content_item, 'text'):
+                                content = content_item.text
+                                break
+                        if content:
+                            break
+                if not content:
+                    content = str(response.output)
+            else:
+                content = str(response)
+        else:
+            content = response.choices[0].message.content  # Standard chat.completions.create() structure
+        
+        return content
     except Exception as e:
         return f"Error fetching fundamental analysis for {ticker}: {str(e)}"
 
@@ -894,7 +1249,7 @@ def get_earnings_calendar(
     For crypto: Shows major protocol events, upgrades, and announcements that could impact price.
     
     Args:
-        ticker (str): Stock ticker (e.g. AAPL, TSLA) or crypto ticker (e.g. BTCUSD, ETH, SOL)
+        ticker (str): Stock ticker (e.g. AAPL, TSLA) or crypto ticker (e.g. BTC/USD, ETH/USD, SOL/USD)
         start_date (str): Start date in yyyy-mm-dd format
         end_date (str): End date in yyyy-mm-dd format
         
