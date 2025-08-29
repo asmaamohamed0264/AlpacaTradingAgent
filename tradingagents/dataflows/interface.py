@@ -595,7 +595,7 @@ def get_stock_news_openai(ticker, curr_date):
             
             # Base parameters for responses.create()
             if is_gpt5:
-                # GPT-5 uses "developer" role
+                # GPT-5 uses "developer" role - optimized for speed
                 api_params = {
                     "model": model,
                     "input": [
@@ -604,7 +604,7 @@ def get_stock_news_openai(ticker, curr_date):
                             "content": [
                                 {
                                     "type": "input_text",
-                                    "text": "You are a financial research assistant with web search access. Use real-time web search to provide comprehensive social media sentiment analysis and recent news about the specified stock ticker. Focus on sentiment trends, key discussions, and any notable developments."
+                                    "text": "You are a financial research assistant with web search access. Use real-time web search to provide focused social media sentiment analysis and recent news about the specified ticker. Prioritize speed and key insights."
                                 }
                             ]
                         },
@@ -618,15 +618,15 @@ def get_stock_news_openai(ticker, curr_date):
                             ]
                         }
                     ],
-                    "text": {"format": {"type": "text"}, "verbosity": "medium"},
-                    "reasoning": {"effort": "medium", "summary": "auto"},
+                    "text": {"format": {"type": "text"}, "verbosity": "low"},
+                    "reasoning": {"effort": "low", "summary": "auto"},
                     "tools": [{
                         "type": "web_search",
                         "user_location": {"type": "approximate"},
-                        "search_context_size": "medium"
+                        "search_context_size": "low"
                     }],
                     "store": True,
-                    "include": ["reasoning.encrypted_content", "web_search_call.action.sources"]
+                    "include": ["web_search_call.action.sources"]
                 }
             elif is_gpt41:
                 # GPT-4.1 uses "system" role  
@@ -719,7 +719,7 @@ def get_stock_news_openai(ticker, curr_date):
         return f"Error fetching social media analysis for {ticker}: {str(e)}"
 
 
-def get_global_news_openai(curr_date):
+def get_global_news_openai(curr_date, ticker_context=None):
     # Get API key from environment variables or config
     api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
     if not api_key:
@@ -744,15 +744,30 @@ def get_global_news_openai(curr_date):
         is_gpt5 = any(model_prefix in model for model_prefix in gpt5_models)
         is_gpt41 = any(model_prefix in model for model_prefix in gpt41_models)
         
+        # Determine if this is crypto-related analysis
+        is_crypto = ticker_context and ("/" in ticker_context or "USD" in ticker_context.upper() or "BTC" in ticker_context.upper() or "ETH" in ticker_context.upper())
+        
         if is_gpt5 or is_gpt41:
             # Use responses.create() API with web search capabilities
-            user_message = f"Search the web for current global and macroeconomic news from {start_date} to {curr_date} that would be informative for trading purposes. Include:\n" + \
-                          f"1. Major economic events and announcements\n" + \
-                          f"2. Central bank policy updates\n" + \
-                          f"3. Geopolitical developments affecting markets\n" + \
-                          f"4. Economic data releases and their implications\n" + \
-                          f"5. Trading implications and market sentiment\n" + \
-                          f"6. Summary table with key events and impact levels"
+            if is_crypto:
+                user_message = f"Search the web for current global news and developments from {start_date} to {curr_date} that would impact cryptocurrency markets and {ticker_context if ticker_context else 'crypto'} trading. Include:\n" + \
+                              f"1. Major cryptocurrency and blockchain regulatory developments\n" + \
+                              f"2. Central bank digital currency (CBDC) announcements and crypto policy updates\n" + \
+                              f"3. Institutional crypto adoption, ETF developments, and major investment flows\n" + \
+                              f"4. Major DeFi, smart contract, and blockchain protocol developments\n" + \
+                              f"5. Crypto exchange developments, security issues, and market infrastructure news\n" + \
+                              f"6. Macro events affecting crypto (Fed policy, inflation data, geopolitical developments)\n" + \
+                              f"7. Trading implications and crypto market sentiment\n" + \
+                              f"8. Summary table with key events and impact levels on crypto markets"
+            else:
+                user_message = f"Search the web for current global and macroeconomic news from {start_date} to {curr_date} that would be informative for trading {ticker_context if ticker_context else 'financial markets'}. Include:\n" + \
+                              f"1. Major economic events and announcements\n" + \
+                              f"2. Central bank policy updates\n" + \
+                              f"3. Geopolitical developments affecting markets\n" + \
+                              f"4. Economic data releases and their implications\n" + \
+                              f"5. Sector-specific developments relevant to {ticker_context if ticker_context else 'the market'}\n" + \
+                              f"6. Trading implications and market sentiment\n" + \
+                              f"7. Summary table with key events and impact levels"
             
             # Base parameters for responses.create()
             if is_gpt5:
@@ -765,7 +780,7 @@ def get_global_news_openai(curr_date):
                             "content": [
                                 {
                                     "type": "input_text",
-                                    "text": "You are a financial news analyst with web search access. Use real-time web search to provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
+                                    "text": f"You are a financial news analyst with web search access. Use real-time web search to provide comprehensive analysis of global news that could impact {'cryptocurrency markets and blockchain ecosystem' if is_crypto else 'financial markets'} and trading decisions."
                                 }
                             ]
                         },
@@ -799,7 +814,7 @@ def get_global_news_openai(curr_date):
                             "content": [
                                 {
                                     "type": "input_text",
-                                    "text": "You are a financial news analyst with web search access. Use real-time web search to provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
+                                    "text": f"You are a financial news analyst with web search access. Use real-time web search to provide comprehensive analysis of global news that could impact {'cryptocurrency markets and blockchain ecosystem' if is_crypto else 'financial markets'} and trading decisions."
                                 }
                             ]
                         },
@@ -833,17 +848,11 @@ def get_global_news_openai(curr_date):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a financial news analyst. Provide comprehensive analysis of global and macroeconomic news that could impact financial markets and trading decisions."
+                        "content": f"You are a financial news analyst. Provide comprehensive analysis of global news that could impact {'cryptocurrency markets and blockchain ecosystem' if is_crypto else 'financial markets'} and trading decisions."
                     },
                     {
                         "role": "user",
-                        "content": f"Analyze global and macroeconomic news from {start_date} to {curr_date} that would be informative for trading purposes. Include:\n"
-                                 f"1. Major economic events and announcements\n"
-                                 f"2. Central bank policy updates\n"
-                                 f"3. Geopolitical developments affecting markets\n"
-                                 f"4. Economic data releases and their implications\n"
-                                 f"5. Trading implications and market sentiment\n"
-                                 f"6. Summary table with key events and impact levels"
+                        "content": user_message
                     }
                 ],
                 **model_params

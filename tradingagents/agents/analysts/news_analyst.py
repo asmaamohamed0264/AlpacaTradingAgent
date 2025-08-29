@@ -36,7 +36,7 @@ def create_news_analyst(llm, toolkit):
                 ]
 
         system_message = (
-            "You are an EOD TRADING news analyst specializing in identifying news events and market developments that could drive overnight and next-day price movements. Focus on after-hours catalysts and sentiment shifts that create EOD trading opportunities."
+            f"You are an EOD TRADING news analyst specializing in identifying news events and market developments that could drive overnight and next-day price movements for {ticker}. Focus on after-hours catalysts and sentiment shifts that create EOD trading opportunities."
             + " **EOD TRADING NEWS ANALYSIS:** \n"
             + "1. **Overnight Catalyst Identification:** After-hours events, announcements, data releases that could create next-day gaps or moves \n"
             + "2. **End-of-Day Sentiment Shifts:** Changes in market narrative, analyst sentiment, or sector rotation trends affecting overnight positions \n"
@@ -50,6 +50,7 @@ def create_news_analyst(llm, toolkit):
             + "- Assess news impact magnitude (minor <2%, moderate 2-5%, major >5% overnight/next-day moves) \n"
             + "- Consider news durability (will impact persist through next day or just overnight?) \n"
             + "- Analyze market reaction patterns to similar news in overnight/pre-market sessions \n"
+            + f"**IMPORTANT:** When using get_global_news_openai, ALWAYS pass ticker_context='{ticker}' to get {('crypto-relevant global news (regulation, institutional adoption, DeFi developments)' if is_crypto else 'sector-relevant global news')} instead of generic macro news.\n"
             + "**AVOID:** Generic market commentary, long-term trends, intraday noise. Focus on EOD-relevant news with overnight impact potential.\n"
             + """ Make sure to append a Markdown table at the end organizing:
 | News Event | Date/Time | Impact Level | Price Direction | EOD Trading Implication |

@@ -235,20 +235,22 @@ class Toolkit:
     @tool
     @timing_wrapper("MARKET")
     def get_alpaca_data(
-        symbol: Annotated[str, "ticker symbol of the company"],
+        symbol: Annotated[str, "ticker symbol (stocks: AAPL, TSM; crypto: ETH/USD, BTC/USD)"],
         start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
         end_date: Annotated[str, "End date in yyyy-mm-dd format"],
         timeframe: Annotated[str, "Timeframe for data: 1Min, 5Min, 15Min, 1Hour, 1Day"] = "1Day",
     ) -> str:
         """
-        Retrieve the stock price data for a given ticker symbol from Alpaca.
+        Retrieve stock and cryptocurrency price data from Alpaca.
+        For crypto symbols, use format with slash: ETH/USD, BTC/USD, SOL/USD
+        For stock symbols, use standard format: AAPL, TSM, NVDA
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
+            symbol (str): Ticker symbol - stocks: AAPL, TSM; crypto: ETH/USD, BTC/USD
             start_date (str): Start date in yyyy-mm-dd format
             end_date (str): End date in yyyy-mm-dd format
             timeframe (str): Timeframe for data (1Min, 5Min, 15Min, 1Hour, 1Day)
         Returns:
-            str: A formatted dataframe containing the stock price data for the specified ticker symbol in the specified date range.
+            str: A formatted dataframe containing the price data for the specified ticker symbol in the specified date range.
         """
 
         result_data = interface.get_alpaca_data(symbol, start_date, end_date, timeframe)
@@ -289,7 +291,7 @@ class Toolkit:
     @tool
     @timing_wrapper("MARKET")
     def get_stockstats_indicators_report_online(
-        symbol: Annotated[str, "ticker symbol of the company"],
+        symbol: Annotated[str, "ticker symbol (stocks: AAPL, TSM; crypto: ETH/USD, BTC/USD)"],
         indicator: Annotated[
             str, "technical indicator to get the analysis and report of"
         ],
@@ -299,9 +301,11 @@ class Toolkit:
         look_back_days: Annotated[int, "how many days to look back"] = 30,
     ) -> str:
         """
-        Retrieve stock stats indicators for a given ticker symbol and indicator.
+        Retrieve technical indicators for stocks and crypto symbols.
+        For crypto symbols, use format with slash: ETH/USD, BTC/USD, SOL/USD
+        For stock symbols, use standard format: AAPL, TSM, NVDA
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
+            symbol (str): Ticker symbol - stocks: AAPL, TSM; crypto: ETH/USD, BTC/USD
             indicator (str): Technical indicator to get the analysis and report of, or 'all' for comprehensive report
             curr_date (str): The current trading date you are trading on, YYYY-mm-dd
             look_back_days (int): How many days to look back, default is 30
@@ -549,16 +553,22 @@ class Toolkit:
     @timing_wrapper("NEWS")
     def get_global_news_openai(
         curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        ticker_context: Annotated[str, "Ticker symbol for context-aware news (e.g., ETH/USD, AAPL)"] = None,
     ):
         """
-        Retrieve the latest macroeconomics news on a given date using OpenAI's macroeconomics news API.
+        Retrieve the latest global news relevant to the asset being analyzed using OpenAI with web search.
+        For crypto assets (BTC, ETH, etc.), focuses on crypto-relevant global news like regulation, institutional adoption, DeFi developments.
+        For stocks, focuses on macro-economic and sector-specific global news.
+        
         Args:
             curr_date (str): Current date in yyyy-mm-dd format
+            ticker_context (str): Ticker symbol to provide context for relevant news (e.g., ETH/USD for crypto, AAPL for stocks)
+            
         Returns:
-            str: A formatted string containing the latest macroeconomic news on the given date.
+            str: A formatted string containing the latest relevant global news for the asset being analyzed.
         """
 
-        openai_news_results = interface.get_global_news_openai(curr_date)
+        openai_news_results = interface.get_global_news_openai(curr_date, ticker_context)
 
         return openai_news_results
 
@@ -816,19 +826,22 @@ class Toolkit:
     @tool
     @timing_wrapper("MARKET")
     def get_indicators_table(
-        symbol: Annotated[str, "ticker symbol of the company"],
+        symbol: Annotated[str, "ticker symbol (stocks: AAPL, NVDA; crypto: ETH/USD, BTC/USD)"],
         curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
         look_back_days: Annotated[int, "how many days to look back"] = 90,
     ) -> str:
         """
-        Retrieve comprehensive technical indicators table for a given ticker symbol over a lookback period.
+        Retrieve comprehensive technical indicators table for stocks and crypto over a lookback period.
         Returns a full table with Date and all key technical indicators calculated over the specified time window.
         Includes: EMAs, SMAs, RSI, MACD, Bollinger Bands, Stochastic, Williams %R, OBV, MFI, ATR.
         
+        For crypto symbols, use format with slash: ETH/USD, BTC/USD, SOL/USD
+        For stock symbols, use standard format: AAPL, NVDA, TSLA
+        
         Args:
-            symbol (str): Ticker symbol of the company, e.g. AAPL, NVDA
+            symbol (str): Ticker symbol - stocks: AAPL, NVDA; crypto: ETH/USD, BTC/USD
             curr_date (str): The current trading date in YYYY-mm-dd format
-            look_back_days (int): How many days to look back (default 60)
+            look_back_days (int): How many days to look back (default 90)
             
         Returns:
             str: A comprehensive table containing Date and all technical indicators for the lookback period
