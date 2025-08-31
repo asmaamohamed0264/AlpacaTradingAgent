@@ -94,6 +94,12 @@ class StockstatsUtils:
                     if data.empty:
                         return f"N/A: No data available for {symbol}"
                     
+                    # Clean data and handle duplicates to prevent reindex errors
+                    data = data.dropna()
+                    if 'date' in data.columns:
+                        data = data.drop_duplicates(subset=['date'])
+                    data = data.reset_index(drop=True)
+                    
                     # Standardize column names for stockstats
                     if 'timestamp' in data.columns:
                         data = data.rename(columns={

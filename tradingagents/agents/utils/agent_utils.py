@@ -17,8 +17,14 @@ import time
 from functools import wraps
 
 
-def timing_wrapper(analyst_type):
-    """Decorator to time function calls and track them for UI display"""
+def timing_wrapper(analyst_type, timeout_seconds=120):
+    """
+    Decorator to time function calls and track them for UI display with timeout protection
+    
+    Args:
+        analyst_type: Type of analyst (MARKET, SOCIAL, etc.)
+        timeout_seconds: Maximum execution time allowed (default 120s)
+    """
     
     def decorator(func):
         @wraps(func)
@@ -28,6 +34,12 @@ def timing_wrapper(analyst_type):
             
             # Get the function (tool) name
             tool_name = func.__name__
+            
+            # Timeout handling using ThreadPoolExecutor (cross-platform)
+            import concurrent.futures
+            
+            def run_function():
+                return func(*args, **kwargs)
             
             # Format tool inputs for display
             input_summary = {}
@@ -62,8 +74,46 @@ def timing_wrapper(analyst_type):
                 import datetime
                 timestamp = datetime.datetime.now().strftime("%H:%M:%S")
                 
-                # Execute the original function first to get the result
-                result = func(*args, **kwargs)
+                # Execute the function with timeout protection
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(run_function)
+                    try:
+                        # Wait for the function to complete with timeout
+                        result = future.result(timeout=timeout_seconds)
+                        
+                        # Check for very slow execution (warn if > 30s)
+                        partial_elapsed = time.time() - start_time
+                        if partial_elapsed > 120:
+                            print(f"[{analyst_type}] ⚠️ Slow execution warning: {tool_name} took {partial_elapsed:.1f}s")
+                            
+                    except concurrent.futures.TimeoutError:
+                        elapsed = time.time() - start_time
+                        timeout_msg = f"TIMEOUT: Tool '{tool_name}' exceeded {timeout_seconds}s limit (stopped at {elapsed:.1f}s)"
+                        print(f"[{analyst_type}] ⏰ {timeout_msg}")
+                        
+                        # Store timeout info
+                        tool_call_info = {
+                            "timestamp": timestamp,
+                            "tool_name": tool_name,
+                            "inputs": input_summary,
+                            "output": f"TIMEOUT ERROR: {timeout_msg}",
+                            "execution_time": f"{elapsed:.2f}s",
+                            "status": "timeout",
+                            "agent_type": analyst_type,
+                            "symbol": getattr(app_state, 'analyzing_symbol', None) or getattr(app_state, 'current_symbol', None),
+                            "error_details": {
+                                "error_type": "TimeoutError",
+                                "timeout_seconds": timeout_seconds,
+                                "actual_time": elapsed
+                            }
+                        }
+                        
+                        app_state.tool_calls_log.append(tool_call_info)
+                        app_state.tool_calls_count = len(app_state.tool_calls_log)
+                        app_state.needs_ui_update = True
+                        
+                        # Return a timeout error message
+                        return f"Error: Tool '{tool_name}' timed out after {timeout_seconds}s. This may indicate network issues, API problems, or insufficient data."
                 
                 # Calculate execution time
                 elapsed = time.time() - start_time
@@ -96,9 +146,38 @@ def timing_wrapper(analyst_type):
                 
             except Exception as e:
                 elapsed = time.time() - start_time
-                print(f"[{analyst_type}] ❌ Tool '{tool_name}' failed after {elapsed:.2f}s: {str(e)}")
                 
-                # Store the failed tool call information
+                # Enhanced error logging with detailed debugging info
+                error_details = {
+                    "tool_name": tool_name,
+                    "inputs": input_summary,
+                    "execution_time": f"{elapsed:.2f}s",
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                }
+                
+                # Add specific error handling for common issues
+                detailed_error = str(e)
+                if "api key" in str(e).lower():
+                    detailed_error = f"API KEY ERROR: {str(e)}\n💡 SOLUTION: Check your API key configuration in the .env file"
+                elif "organization" in str(e).lower() and "verification" in str(e).lower():
+                    detailed_error = f"OPENAI ORG ERROR: {str(e)}\n💡 SOLUTION: Your OpenAI organization may need verification or you may have billing issues"
+                elif "timeout" in str(e).lower() or "timed out" in str(e).lower():
+                    detailed_error = f"TIMEOUT ERROR: {str(e)}\n💡 SOLUTION: Network or API service may be slow. Try again in a few minutes"
+                elif "rate limit" in str(e).lower():
+                    detailed_error = f"RATE LIMIT ERROR: {str(e)}\n💡 SOLUTION: You've hit API rate limits. Wait before retrying"
+                elif "connection" in str(e).lower():
+                    detailed_error = f"CONNECTION ERROR: {str(e)}\n💡 SOLUTION: Check your internet connection and API service status"
+                elif "insufficient data" in str(e).lower():
+                    detailed_error = f"DATA ERROR: {str(e)}\n💡 SOLUTION: Try a different date range or check if the symbol is correct"
+                
+                print(f"[{analyst_type}] ❌ Tool '{tool_name}' failed after {elapsed:.2f}s")
+                print(f"[{analyst_type}] 🔍 ERROR DETAILS:")
+                print(f"   Error Type: {error_details['error_type']}")
+                print(f"   Error Message: {detailed_error}")
+                print(f"   Tool Inputs: {input_summary}")
+                
+                # Store the failed tool call information with enhanced details
                 try:
                     from webui.utils.state import app_state
                     import datetime
@@ -111,11 +190,12 @@ def timing_wrapper(analyst_type):
                         "timestamp": timestamp,
                         "tool_name": tool_name,
                         "inputs": input_summary,
-                        "output": f"ERROR: {str(e)}",
+                        "output": f"ERROR ({error_details['error_type']}): {detailed_error}",
                         "execution_time": f"{elapsed:.2f}s",
                         "status": "error",
                         "agent_type": analyst_type,  # Add agent type for filtering
-                        "symbol": current_symbol  # Add symbol for filtering
+                        "symbol": current_symbol,  # Add symbol for filtering
+                        "error_details": error_details  # Add structured error details
                     }
                     
                     app_state.tool_calls_log.append(tool_call_info)
@@ -904,37 +984,201 @@ class Toolkit:
         dates = dates[::-1]
         recent_dates = dates[-25:] if len(dates) > 25 else dates  # Show last 25 trading days
         
-        # For each date, get all indicator values
-        for date in recent_dates:
-            row_values = [date]
+        # OPTIMIZED: Use batch processing instead of 350+ individual calls
+        print(f"[INDICATORS] Getting batch indicator data for {symbol} over {len(recent_dates)} dates...")
+        
+        # Get raw stock data first to calculate all indicators at once
+        try:
+            from tradingagents.dataflows.alpaca_utils import AlpacaUtils
+            import pandas as pd
             
+            # Get extended data for proper indicator calculation (need more history)
+            start_date_extended = curr_dt - pd.Timedelta(days=200)  # More history for proper indicators
+            
+            # Get stock data
+            stock_data = AlpacaUtils.get_stock_data(
+                symbol=symbol,
+                start_date=start_date_extended.strftime('%Y-%m-%d'),
+                end_date=curr_date,
+                timeframe="1Day"
+            )
+            
+            if stock_data.empty:
+                results.append("| ERROR | No stock data available for indicator calculations |")
+                return "\n".join(results)
+            
+            # Clean data and ensure proper indexing
+            stock_data = stock_data.dropna()
+            stock_data = stock_data.reset_index(drop=True)
+            
+            # Ensure we have enough data for indicators
+            if len(stock_data) < 50:
+                results.append(f"| WARNING | Only {len(stock_data)} days of data available, indicators may be incomplete |")
+            
+            print(f"[INDICATORS] Processing {len(stock_data)} days of data for {symbol}")
+            
+            # Calculate all indicators using stockstats
+            import stockstats
+            stock_stats = stockstats.StockDataFrame.retype(stock_data.copy())
+            
+            # Calculate all indicators efficiently
+            indicator_data = {}
             for indicator in key_indicators:
                 try:
-                    # Get indicator value for this date using the window method
-                    value = interface.get_stock_stats_indicators_window(
-                        symbol, indicator, date, 1, True  # Get just this date's value
-                    )
-                    # Extract just the numeric value from the response
-                    if ":" in value:
-                        numeric_part = value.split(":")[-1].strip().split("(")[0].strip()
+                    if indicator == 'close_8_ema':
+                        indicator_data[indicator] = stock_stats['close_8_ema']
+                    elif indicator == 'close_21_ema':
+                        indicator_data[indicator] = stock_stats['close_21_ema']  
+                    elif indicator == 'close_50_sma':
+                        indicator_data[indicator] = stock_stats['close_50_sma']
+                    elif indicator == 'rsi_14':
+                        indicator_data[indicator] = stock_stats['rsi_14']
+                    elif indicator == 'macd':
+                        indicator_data[indicator] = stock_stats['macd']
+                    elif indicator == 'macds':
+                        indicator_data[indicator] = stock_stats['macds']
+                    elif indicator == 'macdh':
+                        indicator_data[indicator] = stock_stats['macdh']
+                    elif indicator == 'boll_ub':
+                        indicator_data[indicator] = stock_stats['boll_ub']
+                    elif indicator == 'boll_lb':
+                        indicator_data[indicator] = stock_stats['boll_lb']
+                    elif indicator == 'kdjk_9':
+                        indicator_data[indicator] = stock_stats['kdjk_9']
+                    elif indicator == 'kdjd_9':
+                        indicator_data[indicator] = stock_stats['kdjd_9']
+                    elif indicator == 'wr_14':
+                        indicator_data[indicator] = stock_stats['wr_14']
+                    elif indicator == 'atr_14':
+                        indicator_data[indicator] = stock_stats['atr_14']
+                    elif indicator == 'obv':
+                        # OBV calculation - handle the parsing issue
                         try:
-                            float_val = float(numeric_part)
-                            if indicator in ['rsi_14', 'kdjk', 'kdjd', 'wr_14']:
-                                row_values.append(f"{float_val:.1f}")
-                            elif 'macd' in indicator:
-                                row_values.append(f"{float_val:.3f}")
-                            else:
-                                row_values.append(f"{float_val:.2f}")
-                        except:
-                            row_values.append("N/A")
+                            indicator_data[indicator] = stock_stats['obv']
+                        except Exception as obv_error:
+                            print(f"[INDICATORS] OBV calculation failed, using manual method: {obv_error}")
+                            # Manual OBV calculation
+                            obv_values = []
+                            obv = 0
+                            for i in range(len(stock_data)):
+                                if i == 0:
+                                    obv_values.append(stock_data['volume'].iloc[i])
+                                else:
+                                    if stock_data['close'].iloc[i] > stock_data['close'].iloc[i-1]:
+                                        obv += stock_data['volume'].iloc[i]
+                                    elif stock_data['close'].iloc[i] < stock_data['close'].iloc[i-1]:
+                                        obv -= stock_data['volume'].iloc[i]
+                                    obv_values.append(obv)
+                            indicator_data[indicator] = pd.Series(obv_values, index=stock_data.index)
                     else:
-                        row_values.append("N/A")
-                except:
-                    row_values.append("N/A")
+                        indicator_data[indicator] = None
+                except Exception as e:
+                    print(f"[INDICATORS] Warning: Failed to calculate {indicator}: {e}")
+                    indicator_data[indicator] = None
             
-            # Format the table row
-            table_row = "| " + " | ".join(row_values) + " |"
-            results.append(table_row)
+            # Convert date strings to datetime for matching
+            recent_dates_dt = [pd.to_datetime(d) for d in recent_dates]
+            
+            # Build table rows efficiently
+            for date_str in recent_dates:
+                row_values = [date_str]
+                date_dt = pd.to_datetime(date_str)
+                
+                for indicator in key_indicators:
+                    try:
+                        # Find matching date in indicator data
+                        indicator_series = indicator_data.get(indicator)
+                        if indicator_series is not None and len(indicator_series) > 0:
+                            try:
+                                # Convert recent_dates to match stock_data index
+                                # Find the closest date index in our data
+                                target_date = pd.to_datetime(date_str)
+                                
+                                # If stock_data has a date column, use it for matching
+                                if 'date' in stock_data.columns:
+                                    date_matches = stock_data[stock_data['date'] == target_date.strftime('%Y-%m-%d')]
+                                    if not date_matches.empty:
+                                        idx = date_matches.index[0]
+                                        if idx < len(indicator_series):
+                                            value = indicator_series.iloc[idx]
+                                        else:
+                                            value = indicator_series.iloc[-1]  # Use last available
+                                    else:
+                                        # Use the most recent available data
+                                        value = indicator_series.iloc[-1] if len(indicator_series) > 0 else None
+                                else:
+                                    # Use index-based matching (most recent data)
+                                    days_from_end = (pd.to_datetime(recent_dates[-1]) - target_date).days
+                                    idx = max(0, len(indicator_series) - 1 - days_from_end)
+                                    idx = min(idx, len(indicator_series) - 1)
+                                    value = indicator_series.iloc[idx]
+                                
+                                if pd.isna(value) or value is None:
+                                    row_values.append("N/A")
+                                else:
+                                    # Format value appropriately
+                                    if indicator in ['rsi_14', 'kdjk_9', 'kdjd_9', 'wr_14']:
+                                        row_values.append(f"{float(value):.1f}")
+                                    elif 'macd' in indicator:
+                                        row_values.append(f"{float(value):.3f}")
+                                    else:
+                                        row_values.append(f"{float(value):.2f}")
+                            except Exception as match_error:
+                                print(f"[INDICATORS] Date matching error for {indicator}: {match_error}")
+                                row_values.append("N/A")
+                        else:
+                            row_values.append("N/A")
+                    except Exception as e:
+                        row_values.append("N/A")
+                
+                # Format the table row
+                table_row = "| " + " | ".join(row_values) + " |"
+                results.append(table_row)
+                
+        except Exception as e:
+            print(f"[INDICATORS] ERROR: Batch indicator calculation failed: {e}")
+            # Fallback to individual calls (original slow method) with timeout
+            import time
+            timeout_per_call = 2.0  # 2 second timeout per call
+            
+            for date in recent_dates:
+                row_values = [date]
+                
+                for indicator in key_indicators:
+                    start_time = time.time()
+                    try:
+                        # Get indicator value with timeout protection
+                        value = interface.get_stock_stats_indicators_window(
+                            symbol, indicator, date, 1, True
+                        )
+                        
+                        # Check if call took too long
+                        elapsed = time.time() - start_time
+                        if elapsed > timeout_per_call:
+                            print(f"[INDICATORS] Warning: {indicator} took {elapsed:.1f}s (slow)")
+                        
+                        # Extract numeric value
+                        if ":" in value:
+                            numeric_part = value.split(":")[-1].strip().split("(")[0].strip()
+                            try:
+                                float_val = float(numeric_part)
+                                if indicator in ['rsi_14', 'kdjk_9', 'kdjd_9', 'wr_14']:
+                                    row_values.append(f"{float_val:.1f}")
+                                elif 'macd' in indicator:
+                                    row_values.append(f"{float_val:.3f}")
+                                else:
+                                    row_values.append(f"{float_val:.2f}")
+                            except:
+                                row_values.append("N/A")
+                        else:
+                            row_values.append("N/A")
+                    except Exception as ind_e:
+                        print(f"[INDICATORS] Error getting {indicator} for {date}: {ind_e}")
+                        row_values.append("N/A")
+                
+                # Format the table row
+                table_row = "| " + " | ".join(row_values) + " |"
+                results.append(table_row)
         
         results.append("")
         results.append("## Key EOD Trading Signals Analysis:")

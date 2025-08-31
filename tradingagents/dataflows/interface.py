@@ -566,6 +566,13 @@ def get_stock_news_openai(ticker, curr_date):
         return f"Error: OpenAI API key not found. Please set OPENAI_API_KEY environment variable."
     
     try:
+        # Standardize ticker format for consistent API calls
+        from .ticker_utils import TickerUtils, normalize_ticker_for_logs
+        ticker_info = TickerUtils.standardize_ticker(ticker)
+        openai_ticker = ticker_info['openai_format']  # Use consistent format for OpenAI
+        
+        print(f"[SOCIAL] Using ticker format: {openai_ticker} (from input: {normalize_ticker_for_logs(ticker)})")
+        
         client = OpenAI(api_key=api_key)
         
         # Get the selected quick model from config
@@ -585,8 +592,8 @@ def get_stock_news_openai(ticker, curr_date):
         is_gpt41 = any(model_prefix in model for model_prefix in gpt41_models)
         
         if is_gpt5 or is_gpt41:
-            # Use responses.create() API with web search capabilities
-            user_message = f"Search the web and analyze current social media sentiment and recent news for {ticker} from {start_date} to {curr_date}. Include:\n" + \
+            # Use responses.create() API with web search capabilities - use standardized ticker
+            user_message = f"Search the web and analyze current social media sentiment and recent news for {ticker_info['display_format']} ({openai_ticker}) from {start_date} to {curr_date}. Include:\n" + \
                           f"1. Overall sentiment analysis from recent social media posts\n" + \
                           f"2. Key themes and discussions happening now\n" + \
                           f"3. Notable price-moving news or events from the past week\n" + \
@@ -676,7 +683,7 @@ def get_stock_news_openai(ticker, curr_date):
                     },
                     {
                         "role": "user",
-                        "content": f"Analyze social media sentiment and recent news for {ticker} from {start_date} to {curr_date}. Include:\n"
+                        "content": f"Analyze social media sentiment and recent news for {ticker_info['display_format']} ({openai_ticker}) from {start_date} to {curr_date}. Include:\n"
                                  f"1. Overall sentiment analysis\n"
                                  f"2. Key themes and discussions\n"
                                  f"3. Notable price-moving news or events\n"
@@ -716,7 +723,13 @@ def get_stock_news_openai(ticker, curr_date):
         
         return content
     except Exception as e:
-        return f"Error fetching social media analysis for {ticker}: {str(e)}"
+        # Use standardized ticker in error message if available
+        display_ticker = ticker
+        try:
+            display_ticker = normalize_ticker_for_logs(ticker)
+        except:
+            pass
+        return f"Error fetching social media analysis for {display_ticker}: {str(e)}"
 
 
 def get_global_news_openai(curr_date, ticker_context=None):
