@@ -47,9 +47,11 @@ def create_intervals():
 
 def create_stores():
     """Create store components for state management"""
+    from webui.utils.storage import create_storage_store_component
     return [
         dcc.Store(id='app-store'),
-        dcc.Store(id='chart-store', data={'last_symbol': None, 'selected_period': '1y'})
+        dcc.Store(id='chart-store', data={'last_symbol': None, 'selected_period': '1y'}),
+        create_storage_store_component()
     ]
 
 
