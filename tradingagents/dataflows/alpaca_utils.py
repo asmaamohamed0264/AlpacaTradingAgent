@@ -567,24 +567,24 @@ class AlpacaUtils:
         try:
             results = []
             
+            # Helper to calculate integer quantity for any orders (used by both trading modes)
+            def _calc_qty(sym: str, amount: float) -> int:
+                """Return integer share qty based on latest quote price."""
+                try:
+                    quote = AlpacaUtils.get_latest_quote(sym)
+                    price = quote.get("bid_price") or quote.get("ask_price")
+                    if not price or price <= 0:
+                        # Fallback: assume $1 to avoid div-by-zero; will raise later if Alpaca rejects
+                        price = 1
+                    qty = int(amount / price)
+                    return max(qty, 1)
+                except Exception:
+                    # Fallback: at least 1 share
+                    return 1
+            
             if allow_shorts:
                 # Trading mode: LONG/NEUTRAL/SHORT signals
                 signal = signal.upper()
-                
-                # Helper to calculate integer quantity for short orders (or any qty-based order)
-                def _calc_qty(sym: str, amount: float) -> int:
-                    """Return integer share qty based on latest quote price."""
-                    try:
-                        quote = AlpacaUtils.get_latest_quote(sym)
-                        price = quote.get("bid_price") or quote.get("ask_price")
-                        if not price or price <= 0:
-                            # Fallback: assume $1 to avoid div-by-zero; will raise later if Alpaca rejects
-                            price = 1
-                        qty = int(amount / price)
-                        return max(qty, 1)
-                    except Exception:
-                        # Fallback: at least 1 share
-                        return 1
                 
                 if current_position == "LONG":
                     if signal == "LONG":
