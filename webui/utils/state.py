@@ -664,7 +664,9 @@ class AppState:
             
             # Bull researcher
             if "bull_history" in debate_state and debate_state["bull_history"]:
-                if state["agent_statuses"].get("Bull Researcher") == "pending":
+                # Only set to in_progress if currently pending (don't override completed status)
+                current_status = state["agent_statuses"].get("Bull Researcher")
+                if current_status == "pending":
                     self.update_agent_status("Bull Researcher", "in_progress", analyzing_symbol)
                 # Use the latest message from bull_messages array if available, otherwise use full history
                 if "bull_messages" in debate_state and debate_state["bull_messages"]:
@@ -677,7 +679,9 @@ class AppState:
             
             # Bear researcher
             if "bear_history" in debate_state and debate_state["bear_history"]:
-                if state["agent_statuses"].get("Bear Researcher") == "pending":
+                # Only set to in_progress if currently pending (don't override completed status)
+                current_status = state["agent_statuses"].get("Bear Researcher")
+                if current_status == "pending":
                     self.update_agent_status("Bear Researcher", "in_progress", analyzing_symbol)
                 # Use the latest message from bear_messages array if available, otherwise use full history
                 if "bear_messages" in debate_state and debate_state["bear_messages"]:
@@ -715,7 +719,9 @@ class AppState:
             
             # Risky analyst
             if "current_risky_response" in risk_state and risk_state["current_risky_response"]:
-                if state["agent_statuses"].get("Risky Analyst") == "pending":
+                # Only set to in_progress if currently pending (don't override completed status)
+                current_status = state["agent_statuses"].get("Risky Analyst")
+                if current_status == "pending":
                     self.update_agent_status("Risky Analyst", "in_progress", analyzing_symbol)
                 # Extract just the content without the "Risky Analyst:" prefix if present
                 risky_content = risk_state["current_risky_response"]
@@ -728,7 +734,9 @@ class AppState:
             
             # Safe analyst
             if "current_safe_response" in risk_state and risk_state["current_safe_response"]:
-                if state["agent_statuses"].get("Safe Analyst") == "pending":
+                # Only set to in_progress if currently pending (don't override completed status)
+                current_status = state["agent_statuses"].get("Safe Analyst")
+                if current_status == "pending":
                     self.update_agent_status("Safe Analyst", "in_progress", analyzing_symbol)
                 # Extract just the content without the "Safe Analyst:" prefix if present
                 safe_content = risk_state["current_safe_response"]
@@ -741,7 +749,9 @@ class AppState:
             
             # Neutral analyst
             if "current_neutral_response" in risk_state and risk_state["current_neutral_response"]:
-                if state["agent_statuses"].get("Neutral Analyst") == "pending":
+                # Only set to in_progress if currently pending (don't override completed status)
+                current_status = state["agent_statuses"].get("Neutral Analyst")
+                if current_status == "pending":
                     self.update_agent_status("Neutral Analyst", "in_progress", analyzing_symbol)
                 # Extract just the content without the "Neutral Analyst:" prefix if present
                 neutral_content = risk_state["current_neutral_response"]

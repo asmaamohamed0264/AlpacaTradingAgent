@@ -598,10 +598,16 @@ class AlpacaUtils:
                         close_result = AlpacaUtils.close_position(symbol)
                         results.append({"action": "close_long", "result": close_result})
                         if close_result.get("success"):
-                            # Calculate integer quantity for short (fractional shares cannot be shorted)
-                            qty_int = _calc_qty(symbol, dollar_amount)
-                            short_result = AlpacaUtils.place_market_order(symbol, "sell", qty=qty_int)
-                            results.append({"action": "open_short", "result": short_result})
+                            # Check if this is crypto - Alpaca doesn't support crypto short selling directly
+                            is_crypto = "/" in symbol.upper()
+                            if is_crypto:
+                                error_msg = f"Direct short selling not supported for crypto assets like {symbol}. Position closed but short not opened."
+                                results.append({"action": "open_short", "result": {"success": False, "error": error_msg}})
+                            else:
+                                # Calculate integer quantity for short (fractional shares cannot be shorted)
+                                qty_int = _calc_qty(symbol, dollar_amount)
+                                short_result = AlpacaUtils.place_market_order(symbol, "sell", qty=qty_int)
+                                results.append({"action": "open_short", "result": short_result})
                 
                 elif current_position == "SHORT":
                     if signal == "SHORT":
@@ -615,22 +621,40 @@ class AlpacaUtils:
                         close_result = AlpacaUtils.close_position(symbol)
                         results.append({"action": "close_short", "result": close_result})
                         if close_result.get("success"):
-                            # Calculate integer quantity for long (fractional shares cannot be bought)
-                            qty_int = _calc_qty(symbol, dollar_amount)
-                            long_result = AlpacaUtils.place_market_order(symbol, "buy", qty=qty_int)
+                            # Open LONG position - use notional amount for crypto, quantity for stocks
+                            is_crypto = "/" in symbol.upper()
+                            if is_crypto:
+                                # For crypto, use exact dollar amount (notional)
+                                long_result = AlpacaUtils.place_market_order(symbol, "buy", notional=dollar_amount)
+                            else:
+                                # For stocks, calculate quantity
+                                qty_int = _calc_qty(symbol, dollar_amount)
+                                long_result = AlpacaUtils.place_market_order(symbol, "buy", qty=qty_int)
                             results.append({"action": "open_long", "result": long_result})
                 
                 elif current_position == "NEUTRAL":
                     if signal == "LONG":
-                        # Open LONG position
-                        qty_int = _calc_qty(symbol, dollar_amount)
-                        long_result = AlpacaUtils.place_market_order(symbol, "buy", qty=qty_int)
+                        # Open LONG position - use notional amount for crypto, quantity for stocks
+                        is_crypto = "/" in symbol.upper()
+                        if is_crypto:
+                            # For crypto, use exact dollar amount (notional)
+                            long_result = AlpacaUtils.place_market_order(symbol, "buy", notional=dollar_amount)
+                        else:
+                            # For stocks, calculate quantity
+                            qty_int = _calc_qty(symbol, dollar_amount)
+                            long_result = AlpacaUtils.place_market_order(symbol, "buy", qty=qty_int)
                         results.append({"action": "open_long", "result": long_result})
                     elif signal == "SHORT":
-                        # Open SHORT position
-                        qty_int = _calc_qty(symbol, dollar_amount)
-                        short_result = AlpacaUtils.place_market_order(symbol, "sell", qty=qty_int)
-                        results.append({"action": "open_short", "result": short_result})
+                        # Check if this is crypto - Alpaca doesn't support crypto short selling directly
+                        is_crypto = "/" in symbol.upper()
+                        if is_crypto:
+                            error_msg = f"Direct short selling not supported for crypto assets like {symbol}. Consider using derivatives or margin trading platforms."
+                            results.append({"action": "open_short", "result": {"success": False, "error": error_msg}})
+                        else:
+                            # For stocks, attempt short selling
+                            qty_int = _calc_qty(symbol, dollar_amount)
+                            short_result = AlpacaUtils.place_market_order(symbol, "sell", qty=qty_int)
+                            results.append({"action": "open_short", "result": short_result})
                     elif signal == "NEUTRAL":
                         results.append({"action": "hold", "message": f"No position needed for {symbol}"})
             
@@ -643,9 +667,15 @@ class AlpacaUtils:
                     if has_position:
                         results.append({"action": "hold", "message": f"Already have position in {symbol}"})
                     else:
-                        # Buy position
-                        qty_int = _calc_qty(symbol, dollar_amount)
-                        buy_result = AlpacaUtils.place_market_order(symbol, "buy", qty=qty_int)
+                        # Buy position - use notional amount for crypto, quantity for stocks
+                        is_crypto = "/" in symbol.upper()
+                        if is_crypto:
+                            # For crypto, use exact dollar amount (notional)
+                            buy_result = AlpacaUtils.place_market_order(symbol, "buy", notional=dollar_amount)
+                        else:
+                            # For stocks, calculate quantity
+                            qty_int = _calc_qty(symbol, dollar_amount)
+                            buy_result = AlpacaUtils.place_market_order(symbol, "buy", qty=qty_int)
                         results.append({"action": "buy", "result": buy_result})
                 
                 elif signal == "SELL":
@@ -659,8 +689,15 @@ class AlpacaUtils:
                 elif signal == "HOLD":
                     results.append({"action": "hold", "message": f"Holding current position in {symbol}"})
             
+            # Check if any critical actions failed
+            has_failures = False
+            for action in results:
+                if "result" in action and not action["result"].get("success", True):
+                    has_failures = True
+                    break
+                    
             return {
-                "success": True,
+                "success": not has_failures,
                 "symbol": symbol,
                 "current_position": current_position,
                 "signal": signal,

@@ -63,17 +63,25 @@ def execute_trade_after_analysis(ticker, allow_shorts, trade_amount):
             allow_shorts=allow_shorts
         )
         
+        # Check individual action results and provide detailed feedback
+        successful_actions = []
+        failed_actions = []
+        
+        for action_result in result.get("actions", []):
+            if "result" in action_result:
+                action_info = action_result["result"]
+                if action_info.get("success"):
+                    successful_actions.append(f"{action_result['action']}: {action_info.get('message', 'Success')}")
+                else:
+                    failed_actions.append(f"{action_result['action']} failed: {action_info.get('error', 'Unknown error')}")
+            else:
+                successful_actions.append(f"{action_result['action']}: {action_result.get('message', 'Action completed')}")
+        
+        # Print results based on overall success
         if result.get("success"):
             print(f"[TRADE] Successfully executed trading actions for {ticker}")
-            for action_result in result.get("actions", []):
-                if "result" in action_result:
-                    action_info = action_result["result"]
-                    if action_info.get("success"):
-                        print(f"[TRADE] {action_result['action']}: {action_info.get('message', 'Success')}")
-                    else:
-                        print(f"[TRADE] {action_result['action']} failed: {action_info.get('error', 'Unknown error')}")
-                else:
-                    print(f"[TRADE] {action_result['action']}: {action_result.get('message', 'Action completed')}")
+            for success in successful_actions:
+                print(f"[TRADE] {success}")
             
             # Store trading results in state for UI display
             state["trading_results"] = result
@@ -81,8 +89,14 @@ def execute_trade_after_analysis(ticker, allow_shorts, trade_amount):
             # Signal that a trade occurred to trigger Alpaca data refresh
             app_state.signal_trade_occurred()
         else:
-            print(f"[TRADE] Failed to execute trading actions for {ticker}: {result.get('error', 'Unknown error')}")
-            state["trading_results"] = {"error": result.get("error", "Trading execution failed")}
+            print(f"[TRADE] Trading execution failed for {ticker}")
+            for success in successful_actions:
+                print(f"[TRADE] {success}")
+            for failure in failed_actions:
+                print(f"[TRADE] {failure}")
+            
+            # Store error information
+            state["trading_results"] = {"error": "One or more trading actions failed", "details": failed_actions}
             
     except Exception as e:
         print(f"[TRADE] Error executing trade for {ticker}: {e}")
