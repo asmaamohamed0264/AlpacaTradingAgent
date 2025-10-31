@@ -1,3 +1,4 @@
+
 typing-extensions==4.10.0
 langchain==0.0.353
 langchain-openai==0.0.8
@@ -6,7 +7,7 @@ pandas==2.2.2
 praw==7.7.1
 feedparser==6.0.10
 stockstats==0.6.2
-eodhd==1.0.14
+eodhd==1.0.32
 langgraph==0.6.11
 chromadb==0.4.22
 setuptools==68.2.2
