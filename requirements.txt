@@ -1,4 +1,3 @@
-
 typing-extensions==4.10.0
 langchain==0.0.353
 langchain-openai==0.0.8
@@ -12,7 +11,7 @@ langgraph==0.6.11
 chromadb==0.4.22
 setuptools==68.2.2
 backtrader==1.9.78.123
-akshare==1.13.67
+akshare==1.17.80
 tushare==1.2.89
 finnhub-python==2.4.19
 parsel==1.8.1
