@@ -19,7 +19,6 @@ requests==2.31.0
 tqdm==4.66.3
 pytz==2024.1
 redis==5.0.3
-chainlit==0.7.700
 rich==13.7.1
 questionary==2.0.1
 python-dotenv==1.0.1
@@ -30,3 +29,4 @@ dash-bootstrap-components>=2.0.0
 flask>=3.0.0
 alpaca-py>=0.8.2
 websocket-client>=1.6.3
+python-multipart>=0.0.9
