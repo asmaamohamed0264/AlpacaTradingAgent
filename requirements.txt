@@ -12,7 +12,7 @@ chromadb==0.4.22
 setuptools==68.2.2
 backtrader==1.9.78.123
 akshare==1.17.80
-tushare==1.2.89
+tushare>=1.2.89
 finnhub-python==2.4.19
 parsel==1.8.1
 requests==2.31.0
@@ -25,7 +25,8 @@ questionary==2.0.1
 python-dotenv==1.0.1
 gradio==4.36.1
 plotly==5.22.0
-dash==2.16.1
-dash-bootstrap-components==1.6.0
-flask==2.3.3
-alpaca-py==0.8.2
+dash>=3.0.0
+dash-bootstrap-components>=2.0.0
+flask>=3.0.0
+alpaca-py>=0.8.2
+websocket-client>=1.6.3
