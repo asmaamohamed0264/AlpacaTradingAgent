@@ -1,7 +1,7 @@
 typing-extensions
 langchain-openai
-# Optional: For Anthropic/Claude support
-# langchain-anthropic
+# Optional: For Anthropic/Claude direct support (not needed if using OpenRouter)
+langchain-anthropic
 langchain-experimental
 pandas
 praw
