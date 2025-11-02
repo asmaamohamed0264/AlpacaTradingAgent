@@ -73,18 +73,37 @@ class FallbackLLMWrapper:
             error_str = str(e).lower()
             error_code = None
             
-            # Try to extract error code from exception
+            # Try to extract error code from exception attributes
             if hasattr(e, 'status_code'):
                 error_code = e.status_code
             elif hasattr(e, 'response') and hasattr(e.response, 'status_code'):
                 error_code = e.response.status_code
-            elif "403" in error_str or "permission denied" in error_str:
+            
+            # Also check for PermissionDeniedError or NotFoundError exception types
+            exception_type = type(e).__name__
+            if "PermissionDenied" in exception_type:
                 error_code = 403
-            elif "404" in error_str or "not found" in error_str:
+            elif "NotFound" in exception_type:
                 error_code = 404
             
+            # Check error string for common patterns
+            if error_code is None:
+                if "403" in error_str or "permission denied" in error_str or "does not have access" in error_str:
+                    error_code = 403
+                elif "404" in error_str or "not found" in error_str or "does not exist" in error_str:
+                    error_code = 404
+            
+            # Check for model-related error messages
+            is_model_error = (
+                "model" in error_str or 
+                "access" in error_str or 
+                "not available" in error_str or
+                "does not have access" in error_str or
+                error_code in [403, 404]  # If we have a 403/404, likely model-related
+            )
+            
             # Only fallback for 403/404 errors related to model availability
-            if error_code in [403, 404] and ("model" in error_str or "access" in error_str):
+            if error_code in [403, 404] and is_model_error:
                 print(f"[LLM] ⚠️  Runtime error ({error_code}) with {self.original_provider}/{self.original_model}: {str(e)[:200]}")
                 print(f"[LLM] 🔄 Attempting fallback to safe models...")
                 
