@@ -160,18 +160,22 @@ def create_config_panel():
             dbc.Select(
                 id="quick-llm",
                 options=[
-                    # OpenAI Models
+                    # OpenAI Models (widely available models first)
+                    {"label": "🤖 OpenAI - gpt-3.5-turbo (Recommended - Widely Available)", "value": "gpt-3.5-turbo"},
+                    {"label": "🤖 OpenAI - gpt-4o", "value": "gpt-4o"},
+                    {"label": "🤖 OpenAI - gpt-4o-mini", "value": "gpt-4o-mini"},
+                    {"label": "🤖 OpenAI - gpt-4-turbo", "value": "gpt-4-turbo"},
+                    {"label": "🤖 OpenAI - gpt-4", "value": "gpt-4"},
+                    # Advanced models (may not be available in all projects)
+                    {"label": "🤖 OpenAI - o3-mini", "value": "o3-mini"},
+                    {"label": "🤖 OpenAI - o3", "value": "o3"},
+                    {"label": "🤖 OpenAI - o1", "value": "o1"},
                     {"label": "🤖 OpenAI - gpt-5", "value": "gpt-5"},
                     {"label": "🤖 OpenAI - gpt-5-mini", "value": "gpt-5-mini"},
                     {"label": "🤖 OpenAI - gpt-5-nano", "value": "gpt-5-nano"},
                     {"label": "🤖 OpenAI - gpt-4.1", "value": "gpt-4.1"},
                     {"label": "🤖 OpenAI - gpt-4.1-nano", "value": "gpt-4.1-nano"},
                     {"label": "🤖 OpenAI - gpt-4.1-mini", "value": "gpt-4.1-mini"},
-                    {"label": "🤖 OpenAI - gpt-4o", "value": "gpt-4o"},
-                    {"label": "🤖 OpenAI - gpt-4o-mini", "value": "gpt-4o-mini"},
-                    {"label": "🤖 OpenAI - o3-mini", "value": "o3-mini"},
-                    {"label": "🤖 OpenAI - o3", "value": "o3"},
-                    {"label": "🤖 OpenAI - o1", "value": "o1"},
                     # DeepSeek Models
                     {"label": "💎 DeepSeek - deepseek-chat", "value": "deepseek:deepseek-chat"},
                     {"label": "💎 DeepSeek - deepseek-coder", "value": "deepseek:deepseek-coder"},
@@ -189,7 +193,7 @@ def create_config_panel():
                     {"label": "🔷 Anthropic - Claude 3.5 Sonnet (dated)", "value": "anthropic:claude-3-5-sonnet-20241022"},
                     {"label": "🔷 Anthropic - Claude 3.5 Haiku (dated)", "value": "anthropic:claude-3-5-haiku-20241022"},
                 ],
-                value="gpt-4o-mini",
+                value="gpt-3.5-turbo",
                 className="mb-2"
             ),
             html.P([
@@ -200,15 +204,20 @@ def create_config_panel():
             dbc.Select(
                 id="deep-llm",
                 options=[
-                    # OpenAI Models
+                    # OpenAI Models (widely available models first)
+                    {"label": "🤖 OpenAI - gpt-3.5-turbo (Recommended - Widely Available)", "value": "gpt-3.5-turbo"},
+                    {"label": "🤖 OpenAI - gpt-4o", "value": "gpt-4o"},
+                    {"label": "🤖 OpenAI - gpt-4-turbo", "value": "gpt-4-turbo"},
+                    {"label": "🤖 OpenAI - gpt-4", "value": "gpt-4"},
+                    {"label": "🤖 OpenAI - gpt-4o-mini", "value": "gpt-4o-mini"},
+                    # Advanced models (may not be available in all projects)
+                    {"label": "🤖 OpenAI - o3-mini", "value": "o3-mini"},
+                    {"label": "🤖 OpenAI - o3", "value": "o3"},
+                    {"label": "🤖 OpenAI - o1", "value": "o1"},
                     {"label": "🤖 OpenAI - gpt-5", "value": "gpt-5"},
                     {"label": "🤖 OpenAI - gpt-5-mini", "value": "gpt-5-mini"},
                     {"label": "🤖 OpenAI - gpt-5-nano", "value": "gpt-5-nano"},
                     {"label": "🤖 OpenAI - gpt-4.1", "value": "gpt-4.1"},
-                    {"label": "🤖 OpenAI - gpt-4o", "value": "gpt-4o"},
-                    {"label": "🤖 OpenAI - o3-mini", "value": "o3-mini"},
-                    {"label": "🤖 OpenAI - o3", "value": "o3"},
-                    {"label": "🤖 OpenAI - o1", "value": "o1"},
                     # DeepSeek Models
                     {"label": "💎 DeepSeek - deepseek-chat", "value": "deepseek:deepseek-chat"},
                     {"label": "💎 DeepSeek - deepseek-coder", "value": "deepseek:deepseek-coder"},
@@ -224,7 +233,7 @@ def create_config_panel():
                     {"label": "🔷 Anthropic - Claude 3.5 Sonnet (dated)", "value": "anthropic:claude-3-5-sonnet-20241022"},
                     {"label": "🔷 Anthropic - Claude 3.5 Haiku (dated)", "value": "anthropic:claude-3-5-haiku-20241022"},
                 ],
-                value="gpt-4o-mini",
+                value="gpt-3.5-turbo",
                 className="mb-3"
             ),
             # Dynamic Start/Stop button

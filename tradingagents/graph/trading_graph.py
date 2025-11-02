@@ -20,6 +20,7 @@ from tradingagents.agents.utils.agent_states import (
 from tradingagents.dataflows.interface import set_config
 from tradingagents.dataflows.config import get_api_key
 from tradingagents.llm_providers import LLMFactory
+from tradingagents.llm_providers.fallback_wrapper import FallbackLLMWrapper
 
 from .conditional_logic import ConditionalLogic
 from .setup import GraphSetup
@@ -104,23 +105,32 @@ class TradingAgentsGraph:
                 **deep_think_kwargs
             )
             # Get LangChain-compatible LLM for compatibility
-            self.deep_thinking_llm = deep_llm.llm if hasattr(deep_llm, 'llm') else deep_llm._llm
-            print(f"[LLM] ✅ Deep Think LLM initialized successfully with {deep_think_provider}/{deep_think_model}")
+            base_llm = deep_llm.llm if hasattr(deep_llm, 'llm') else deep_llm._llm
+            # Wrap with fallback for runtime error handling
+            self.deep_thinking_llm = FallbackLLMWrapper(
+                base_llm, 
+                original_model=deep_think_model,
+                original_provider=deep_think_provider
+            )
+            print(f"[LLM] ✅ Deep Think LLM initialized successfully with {deep_think_provider}/{deep_think_model} (with runtime fallback)")
         except Exception as e:
             print(f"[LLM] ⚠️  Warning: Could not initialize deep_think_llm with provider '{deep_think_provider}': {e}")
             print(f"[LLM] 🔄 Falling back to OpenAI...")
-            # Fallback to OpenAI - use a valid OpenAI model, not the original model which might be from another provider
+            # Fallback to OpenAI - use a safe, widely available model
             api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
-            # Use default OpenAI model if original model is not an OpenAI model
-            fallback_model = deep_think_model if any(prefix in deep_think_model for prefix in ["gpt", "o1", "o3"]) else "o3-mini"
-            # Remove provider prefix if present
-            if "/" in fallback_model:
-                fallback_model = fallback_model.split("/")[-1]
-            print(f"[LLM] Using fallback model: {fallback_model}")
-            self.deep_thinking_llm = ChatOpenAI(
+            # Always use a safe fallback model (gpt-3.5-turbo is most widely available)
+            fallback_model = "gpt-3.5-turbo"
+            print(f"[LLM] Using safe fallback model: {fallback_model}")
+            fallback_llm = ChatOpenAI(
                 model=fallback_model,
                 openai_api_key=api_key,
                 **deep_think_kwargs
+            )
+            # Wrap fallback LLM with runtime fallback wrapper for additional safety
+            self.deep_thinking_llm = FallbackLLMWrapper(
+                fallback_llm,
+                original_model=fallback_model,
+                original_provider="openai"
             )
         
         print(f"[LLM] Initializing Quick Think LLM - Provider: {quick_think_provider}, Model: {quick_think_model}")
@@ -131,23 +141,32 @@ class TradingAgentsGraph:
                 **quick_think_kwargs
             )
             # Get LangChain-compatible LLM for compatibility
-            self.quick_thinking_llm = quick_llm.llm if hasattr(quick_llm, 'llm') else quick_llm._llm
-            print(f"[LLM] ✅ Quick Think LLM initialized successfully with {quick_think_provider}/{quick_think_model}")
+            base_llm = quick_llm.llm if hasattr(quick_llm, 'llm') else quick_llm._llm
+            # Wrap with fallback for runtime error handling
+            self.quick_thinking_llm = FallbackLLMWrapper(
+                base_llm,
+                original_model=quick_think_model,
+                original_provider=quick_think_provider
+            )
+            print(f"[LLM] ✅ Quick Think LLM initialized successfully with {quick_think_provider}/{quick_think_model} (with runtime fallback)")
         except Exception as e:
             print(f"[LLM] ⚠️  Warning: Could not initialize quick_think_llm with provider '{quick_think_provider}': {e}")
             print(f"[LLM] 🔄 Falling back to OpenAI...")
-            # Fallback to OpenAI - use a valid OpenAI model, not the original model which might be from another provider
+            # Fallback to OpenAI - use a safe, widely available model
             api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
-            # Use default OpenAI model if original model is not an OpenAI model
-            fallback_model = quick_think_model if any(prefix in quick_think_model for prefix in ["gpt", "o1", "o3"]) else "gpt-4o-mini"
-            # Remove provider prefix if present
-            if "/" in fallback_model:
-                fallback_model = fallback_model.split("/")[-1]
-            print(f"[LLM] Using fallback model: {fallback_model}")
-            self.quick_thinking_llm = ChatOpenAI(
+            # Always use a safe fallback model (gpt-3.5-turbo is most widely available)
+            fallback_model = "gpt-3.5-turbo"
+            print(f"[LLM] Using safe fallback model: {fallback_model}")
+            fallback_llm = ChatOpenAI(
                 model=fallback_model,
                 openai_api_key=api_key,
                 **quick_think_kwargs
+            )
+            # Wrap fallback LLM with runtime fallback wrapper for additional safety
+            self.quick_thinking_llm = FallbackLLMWrapper(
+                fallback_llm,
+                original_model=fallback_model,
+                original_provider="openai"
             )
         
         self.toolkit = Toolkit(config=self.config)

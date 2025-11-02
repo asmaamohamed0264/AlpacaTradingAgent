@@ -577,7 +577,7 @@ def get_stock_news_openai(ticker, curr_date):
         
         # Get the selected quick model from config
         config = get_config()
-        model = config.get("quick_think_llm", "gpt-4o-mini")  # fallback to default
+        model = config.get("quick_think_llm", "gpt-3.5-turbo")  # fallback to safe default
         
         from datetime import datetime, timedelta
         start_date = (datetime.strptime(curr_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d")
@@ -743,7 +743,7 @@ def get_global_news_openai(curr_date, ticker_context=None):
         
         # Get the selected quick model from config
         config = get_config()
-        model = config.get("quick_think_llm", "gpt-4o-mini")  # fallback to default
+        model = config.get("quick_think_llm", "gpt-3.5-turbo")  # fallback to safe default
         
         from datetime import datetime, timedelta
         start_date = (datetime.strptime(curr_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d")
@@ -914,7 +914,7 @@ def get_fundamentals_openai(ticker, curr_date):
         
         # Get the selected quick model from config
         config = get_config()
-        model = config.get("quick_think_llm", "gpt-4o-mini")  # fallback to default
+        model = config.get("quick_think_llm", "gpt-3.5-turbo")  # fallback to safe default
         
         from datetime import datetime, timedelta
         start_date = (datetime.strptime(curr_date, "%Y-%m-%d") - timedelta(days=30)).strftime("%Y-%m-%d")

@@ -8,9 +8,9 @@ DEFAULT_CONFIG = {
         os.path.abspath(os.path.join(os.path.dirname(__file__), ".")),
         "dataflows/data_cache",
     ),
-    # LLM settings
-    "deep_think_llm": "gpt-4o-mini",  # Changed from o3-mini (may not be available)
-    "quick_think_llm": "gpt-4o-mini",
+    # LLM settings - Use widely available models
+    "deep_think_llm": "gpt-3.5-turbo",  # Most widely available OpenAI model
+    "quick_think_llm": "gpt-3.5-turbo",  # Most widely available OpenAI model
     # LLM Provider settings - can be "openai", "deepseek", "anthropic", "openrouter"
     # Can also use format "provider:model" (e.g., "deepseek:deepseek-chat")
     # OpenRouter models: "openrouter:anthropic/claude-3.5-sonnet" or "openrouter:openai/gpt-4o-mini"
