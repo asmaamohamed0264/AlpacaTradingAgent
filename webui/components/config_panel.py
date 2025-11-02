@@ -160,36 +160,65 @@ def create_config_panel():
             dbc.Select(
                 id="quick-llm",
                 options=[
-                    {"label": "gpt-5", "value": "gpt-5"},
-                    {"label": "gpt-5-mini", "value": "gpt-5-mini"},
-                    {"label": "gpt-5-nano", "value": "gpt-5-nano"},
-                    {"label": "gpt-4.1", "value": "gpt-4.1"},
-                    {"label": "gpt-4.1-nano", "value": "gpt-4.1-nano"},
-                    {"label": "gpt-4.1-mini", "value": "gpt-4.1-mini"},
-                    {"label": "gpt-4o", "value": "gpt-4o"},
-                    {"label": "gpt-4o-mini", "value": "gpt-4o-mini"},
-                    {"label": "o3-mini", "value": "o3-mini"},
-                    {"label": "o3", "value": "o3"},
-                    {"label": "o1", "value": "o1"},
+                    # OpenAI Models
+                    {"label": "🤖 OpenAI - gpt-5", "value": "gpt-5"},
+                    {"label": "🤖 OpenAI - gpt-5-mini", "value": "gpt-5-mini"},
+                    {"label": "🤖 OpenAI - gpt-5-nano", "value": "gpt-5-nano"},
+                    {"label": "🤖 OpenAI - gpt-4.1", "value": "gpt-4.1"},
+                    {"label": "🤖 OpenAI - gpt-4.1-nano", "value": "gpt-4.1-nano"},
+                    {"label": "🤖 OpenAI - gpt-4.1-mini", "value": "gpt-4.1-mini"},
+                    {"label": "🤖 OpenAI - gpt-4o", "value": "gpt-4o"},
+                    {"label": "🤖 OpenAI - gpt-4o-mini", "value": "gpt-4o-mini"},
+                    {"label": "🤖 OpenAI - o3-mini", "value": "o3-mini"},
+                    {"label": "🤖 OpenAI - o3", "value": "o3"},
+                    {"label": "🤖 OpenAI - o1", "value": "o1"},
+                    # DeepSeek Models
+                    {"label": "💎 DeepSeek - deepseek-chat", "value": "deepseek:deepseek-chat"},
+                    {"label": "💎 DeepSeek - deepseek-coder", "value": "deepseek:deepseek-coder"},
+                    # OpenRouter Models (via OpenRouter)
+                    {"label": "🌐 OpenRouter - OpenAI gpt-4o-mini", "value": "openrouter:openai/gpt-4o-mini"},
+                    {"label": "🌐 OpenRouter - OpenAI gpt-4o", "value": "openrouter:openai/gpt-4o"},
+                    {"label": "🌐 OpenRouter - Claude 3.5 Haiku", "value": "openrouter:anthropic/claude-3.5-haiku"},
+                    {"label": "🌐 OpenRouter - Claude 3.5 Sonnet", "value": "openrouter:anthropic/claude-3.5-sonnet"},
+                    {"label": "🌐 OpenRouter - Google Gemini Flash", "value": "openrouter:google/gemini-flash-1.5"},
+                    {"label": "🌐 OpenRouter - Google Gemini Pro", "value": "openrouter:google/gemini-pro-1.5"},
+                    {"label": "🌐 OpenRouter - DeepSeek Chat", "value": "openrouter:deepseek/deepseek-chat"},
+                    # Anthropic Models (direct)
+                    {"label": "🔷 Anthropic - Claude 3.5 Haiku", "value": "anthropic:claude-3-5-haiku-20241022"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Sonnet", "value": "anthropic:claude-3-5-sonnet-20241022"},
                 ],
                 value="gpt-5-nano",
                 className="mb-2"
             ),
+            html.P([
+                "💡 Tip: Selectează un model cu provider prefix (ex: 'deepseek:deepseek-chat') pentru a folosi acel provider. ",
+                "Modelele fără prefix vor folosi provider-ul default (setat în Environment Settings)."
+            ], className="text-muted small mb-3"),
             html.H5("LLM Deep Thinker Model:", className="mt-3"),
             dbc.Select(
                 id="deep-llm",
                 options=[
-                    {"label": "gpt-5", "value": "gpt-5"},
-                    {"label": "gpt-5-mini", "value": "gpt-5-mini"},
-                    {"label": "gpt-5-nano", "value": "gpt-5-nano"},
-                    {"label": "gpt-4.1", "value": "gpt-4.1"},
-                    {"label": "gpt-4.1-nano", "value": "gpt-4.1-nano"},
-                    {"label": "gpt-4.1-mini", "value": "gpt-4.1-mini"},
-                    {"label": "gpt-4o", "value": "gpt-4o"},
-                    {"label": "gpt-4o-mini", "value": "gpt-4o-mini"},
-                    {"label": "o3-mini", "value": "o3-mini"},
-                    {"label": "o3", "value": "o3"},
-                    {"label": "o1", "value": "o1"},
+                    # OpenAI Models
+                    {"label": "🤖 OpenAI - gpt-5", "value": "gpt-5"},
+                    {"label": "🤖 OpenAI - gpt-5-mini", "value": "gpt-5-mini"},
+                    {"label": "🤖 OpenAI - gpt-5-nano", "value": "gpt-5-nano"},
+                    {"label": "🤖 OpenAI - gpt-4.1", "value": "gpt-4.1"},
+                    {"label": "🤖 OpenAI - gpt-4o", "value": "gpt-4o"},
+                    {"label": "🤖 OpenAI - o3-mini", "value": "o3-mini"},
+                    {"label": "🤖 OpenAI - o3", "value": "o3"},
+                    {"label": "🤖 OpenAI - o1", "value": "o1"},
+                    # DeepSeek Models
+                    {"label": "💎 DeepSeek - deepseek-chat", "value": "deepseek:deepseek-chat"},
+                    {"label": "💎 DeepSeek - deepseek-coder", "value": "deepseek:deepseek-coder"},
+                    # OpenRouter Models (via OpenRouter)
+                    {"label": "🌐 OpenRouter - Claude 3.5 Sonnet", "value": "openrouter:anthropic/claude-3.5-sonnet"},
+                    {"label": "🌐 OpenRouter - Claude 3.5 Haiku", "value": "openrouter:anthropic/claude-3.5-haiku"},
+                    {"label": "🌐 OpenRouter - OpenAI gpt-4o", "value": "openrouter:openai/gpt-4o"},
+                    {"label": "🌐 OpenRouter - OpenAI o3-mini", "value": "openrouter:openai/o3-mini"},
+                    {"label": "🌐 OpenRouter - Google Gemini Pro", "value": "openrouter:google/gemini-pro-1.5"},
+                    # Anthropic Models (direct)
+                    {"label": "🔷 Anthropic - Claude 3.5 Sonnet", "value": "anthropic:claude-3-5-sonnet-20241022"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Haiku", "value": "anthropic:claude-3-5-haiku-20241022"},
                 ],
                 value="gpt-5-nano",
                 className="mb-3"

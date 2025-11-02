@@ -1,0 +1,39 @@
+# ============================================
+# ALPACATRADINGAGENT - ENVIRONMENT VARIABLES
+# Copy-Paste în Dokploy → Environment Settings
+# ============================================
+
+# --- ALPACA TRADING API (OBLIGATORIU) ---
+ALPACA_API_KEY=your_alpaca_api_key_here
+ALPACA_SECRET_KEY=your_alpaca_secret_key_here
+ALPACA_USE_PAPER=True
+
+# --- OPENAI API (OBLIGATORIU - pentru fallback) ---
+OPENAI_API_KEY=your_openai_api_key_here
+
+# --- FINANCIAL DATA APIs (OBLIGATORIU) ---
+FINNHUB_API_KEY=your_finnhub_api_key_here
+FRED_API_KEY=your_fred_api_key_here
+COINDESK_API_KEY=your_cryptocompare_api_key_here
+
+# --- LLM PROVIDER SETTINGS (Default: OpenAI) ---
+LLM_PROVIDER=openai
+DEEP_THINK_LLM=o3-mini
+QUICK_THINK_LLM=gpt-4o-mini
+
+# --- OPTIONAL: Alternative LLM Providers ---
+# Decomentează și completează doar dacă vrei să folosești:
+# DEEPSEEK_API_KEY=your_deepseek_api_key_here
+# OPENROUTER_API_KEY=your_openrouter_api_key_here
+# ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Dacă folosești DeepSeek:
+# LLM_PROVIDER=deepseek
+# DEEP_THINK_LLM=deepseek-chat
+# QUICK_THINK_LLM=deepseek-chat
+
+# Dacă folosești OpenRouter:
+# LLM_PROVIDER=openrouter
+# DEEP_THINK_LLM=anthropic/claude-3.5-sonnet
+# QUICK_THINK_LLM=openai/gpt-4o-mini
+
