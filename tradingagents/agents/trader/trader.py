@@ -89,7 +89,13 @@ def create_trader(llm, memory, config=None):
         final_format = trading_context["final_format"]
 
         curr_situation = f"{macro_report}\n\n{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
-        past_memories = memory.get_memories(curr_situation, n_matches=2)
+        # Try to get past memories, but continue without them if embeddings fail
+        try:
+            past_memories = memory.get_memories(curr_situation, n_matches=2)
+        except Exception as e:
+            print(f"[TRADER] ⚠️  Warning: Could not retrieve memories (embeddings may be unavailable): {str(e)[:200]}")
+            print(f"[TRADER] 🔄 Continuing without memory system...")
+            past_memories = []  # Continue without past memories
 
         past_memory_str = ""
         for i, rec in enumerate(past_memories, 1):
