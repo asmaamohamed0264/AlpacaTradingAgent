@@ -186,6 +186,8 @@ def create_config_panel():
                     # Anthropic Models (direct)
                     {"label": "🔷 Anthropic - Claude 3.5 Haiku", "value": "anthropic:claude-3-5-haiku-20241022"},
                     {"label": "🔷 Anthropic - Claude 3.5 Sonnet", "value": "anthropic:claude-3-5-sonnet-20241022"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Sonnet (latest)", "value": "anthropic:claude-3-5-sonnet"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Haiku (latest)", "value": "anthropic:claude-3-5-haiku"},
                 ],
                 value="gpt-5-nano",
                 className="mb-2"
@@ -219,6 +221,8 @@ def create_config_panel():
                     # Anthropic Models (direct)
                     {"label": "🔷 Anthropic - Claude 3.5 Sonnet", "value": "anthropic:claude-3-5-sonnet-20241022"},
                     {"label": "🔷 Anthropic - Claude 3.5 Haiku", "value": "anthropic:claude-3-5-haiku-20241022"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Sonnet (latest)", "value": "anthropic:claude-3-5-sonnet"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Haiku (latest)", "value": "anthropic:claude-3-5-haiku"},
                 ],
                 value="gpt-5-nano",
                 className="mb-3"

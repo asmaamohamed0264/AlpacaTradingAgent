@@ -73,21 +73,21 @@ class TradingAgentsGraph:
         no_temp_models = ["o3", "o4-mini", "gpt-5", "gpt-5-mini", "gpt-5-nano"]
         
         # Extract model name if format is "provider:model"
+        # Initialize model variables first to avoid undefined variable errors
+        deep_think_model = deep_think_config
+        quick_think_model = quick_think_config
+        
         if ":" in deep_think_config:
             provider_part, model_part = deep_think_config.split(":", 1)
             deep_think_provider = provider_part
-            deep_think_model = model_part
-        else:
-            deep_think_model = deep_think_config
-            # Provider already set above or defaults to "openai"
+            deep_think_model = model_part  # Override with extracted model
+        # else: deep_think_model already set, provider already set above
         
         if ":" in quick_think_config:
             provider_part, model_part = quick_think_config.split(":", 1)
             quick_think_provider = provider_part
-            quick_think_model = model_part
-        else:
-            quick_think_model = quick_think_config
-            # Provider already set above or defaults to "openai"
+            quick_think_model = model_part  # Override with extracted model
+        # else: quick_think_model already set, provider already set above
         
         if not any(model_prefix in deep_think_model for model_prefix in no_temp_models):
             deep_think_kwargs["temperature"] = 0.2
@@ -109,10 +109,16 @@ class TradingAgentsGraph:
         except Exception as e:
             print(f"[LLM] ⚠️  Warning: Could not initialize deep_think_llm with provider '{deep_think_provider}': {e}")
             print(f"[LLM] 🔄 Falling back to OpenAI...")
-            # Fallback to OpenAI
+            # Fallback to OpenAI - use a valid OpenAI model, not the original model which might be from another provider
             api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
+            # Use default OpenAI model if original model is not an OpenAI model
+            fallback_model = deep_think_model if any(prefix in deep_think_model for prefix in ["gpt", "o1", "o3"]) else "o3-mini"
+            # Remove provider prefix if present
+            if "/" in fallback_model:
+                fallback_model = fallback_model.split("/")[-1]
+            print(f"[LLM] Using fallback model: {fallback_model}")
             self.deep_thinking_llm = ChatOpenAI(
-                model=deep_think_model,
+                model=fallback_model,
                 openai_api_key=api_key,
                 **deep_think_kwargs
             )
@@ -130,10 +136,16 @@ class TradingAgentsGraph:
         except Exception as e:
             print(f"[LLM] ⚠️  Warning: Could not initialize quick_think_llm with provider '{quick_think_provider}': {e}")
             print(f"[LLM] 🔄 Falling back to OpenAI...")
-            # Fallback to OpenAI
+            # Fallback to OpenAI - use a valid OpenAI model, not the original model which might be from another provider
             api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
+            # Use default OpenAI model if original model is not an OpenAI model
+            fallback_model = quick_think_model if any(prefix in quick_think_model for prefix in ["gpt", "o1", "o3"]) else "gpt-4o-mini"
+            # Remove provider prefix if present
+            if "/" in fallback_model:
+                fallback_model = fallback_model.split("/")[-1]
+            print(f"[LLM] Using fallback model: {fallback_model}")
             self.quick_thinking_llm = ChatOpenAI(
-                model=quick_think_model,
+                model=fallback_model,
                 openai_api_key=api_key,
                 **quick_think_kwargs
             )

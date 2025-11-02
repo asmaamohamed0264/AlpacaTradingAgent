@@ -79,11 +79,21 @@ class LLMFactory:
         """
         cls._initialize_providers()
         
+        # Extract model name first (might have provider prefix)
+        model = model_config
+        if ":" in model_config:
+            # Extract model part if format is "provider:model"
+            _, model = model_config.split(":", 1)
+        
+        # Initialize provider_obj
+        provider_obj = None
+        
         # If explicit provider specified, use it
         if provider:
             provider_obj = cls.get_provider(provider)
             if not provider_obj:
                 raise ValueError(f"Provider '{provider}' not available. Available: {cls.list_providers()}")
+            # Use the extracted model (without provider prefix)
         else:
             # Try to extract provider from model_config
             if ":" in model_config:
