@@ -9,7 +9,7 @@ DEFAULT_CONFIG = {
         "dataflows/data_cache",
     ),
     # LLM settings
-    "deep_think_llm": "o3-mini",
+    "deep_think_llm": "gpt-4o-mini",  # Changed from o3-mini (may not be available)
     "quick_think_llm": "gpt-4o-mini",
     # LLM Provider settings - can be "openai", "deepseek", "anthropic", "openrouter"
     # Can also use format "provider:model" (e.g., "deepseek:deepseek-chat")

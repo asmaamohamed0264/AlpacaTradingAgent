@@ -218,11 +218,11 @@ def create_config_panel():
                     {"label": "🌐 OpenRouter - OpenAI gpt-4o", "value": "openrouter:openai/gpt-4o"},
                     {"label": "🌐 OpenRouter - OpenAI o3-mini", "value": "openrouter:openai/o3-mini"},
                     {"label": "🌐 OpenRouter - Google Gemini Pro", "value": "openrouter:google/gemini-pro-1.5"},
-                    # Anthropic Models (direct)
-                    {"label": "🔷 Anthropic - Claude 3.5 Sonnet", "value": "anthropic:claude-3-5-sonnet-20241022"},
-                    {"label": "🔷 Anthropic - Claude 3.5 Haiku", "value": "anthropic:claude-3-5-haiku-20241022"},
+                    # Anthropic Models (direct) - Use latest versions first
                     {"label": "🔷 Anthropic - Claude 3.5 Sonnet (latest)", "value": "anthropic:claude-3-5-sonnet"},
                     {"label": "🔷 Anthropic - Claude 3.5 Haiku (latest)", "value": "anthropic:claude-3-5-haiku"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Sonnet (dated)", "value": "anthropic:claude-3-5-sonnet-20241022"},
+                    {"label": "🔷 Anthropic - Claude 3.5 Haiku (dated)", "value": "anthropic:claude-3-5-haiku-20241022"},
                 ],
                 value="gpt-5-nano",
                 className="mb-3"

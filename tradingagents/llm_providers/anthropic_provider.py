@@ -97,15 +97,18 @@ class AnthropicProvider(LLMProvider):
     @property
     def default_models(self) -> Dict[str, str]:
         return {
-            "deep_think": "claude-3-5-sonnet-20241022",
-            "quick_think": "claude-3-5-haiku-20241022",
+            "deep_think": "claude-3-5-sonnet",  # Use version without date for latest
+            "quick_think": "claude-3-5-haiku",  # Use version without date for latest
             "embedding": None  # Anthropic doesn't have separate embeddings
         }
     
     def get_available_models(self) -> List[str]:
         """Get list of Anthropic models"""
         return [
-            # Claude 3.5 series
+            # Claude 3.5 series (latest versions - recommended)
+            "claude-3-5-sonnet",
+            "claude-3-5-haiku",
+            # Claude 3.5 series (dated versions - may not be available)
             "claude-3-5-sonnet-20241022",
             "claude-3-5-haiku-20241022",
             # Claude 3 series
