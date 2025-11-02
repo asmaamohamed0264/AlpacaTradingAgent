@@ -19,6 +19,7 @@ from tradingagents.agents.utils.agent_states import (
 )
 from tradingagents.dataflows.interface import set_config
 from tradingagents.dataflows.config import get_api_key
+from tradingagents.llm_providers import LLMFactory
 
 from .conditional_logic import ConditionalLogic
 from .setup import GraphSetup
@@ -55,12 +56,14 @@ class TradingAgentsGraph:
             exist_ok=True,
         )
 
-        # Get API key from environment variables or config
-        api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
-
-        # Initialize LLMs with appropriate parameters based on model type
-        deep_think_model = self.config["deep_think_llm"]
-        quick_think_model = self.config["quick_think_llm"]
+        # Initialize LLMs using multi-provider factory
+        deep_think_config = self.config["deep_think_llm"]
+        quick_think_config = self.config["quick_think_llm"]
+        
+        # Get provider settings
+        default_provider = self.config.get("llm_provider", "openai")
+        deep_think_provider = self.config.get("deep_think_provider") or default_provider
+        quick_think_provider = self.config.get("quick_think_provider") or default_provider
         
         # Check if models don't support temperature parameter
         deep_think_kwargs = {}
@@ -69,27 +72,71 @@ class TradingAgentsGraph:
         # Models that don't support temperature parameter
         no_temp_models = ["o3", "o4-mini", "gpt-5", "gpt-5-mini", "gpt-5-nano"]
         
+        # Extract model name if format is "provider:model"
+        if ":" in deep_think_config:
+            provider_part, model_part = deep_think_config.split(":", 1)
+            deep_think_provider = provider_part
+            deep_think_model = model_part
+        else:
+            deep_think_model = deep_think_config
+            # Provider already set above or defaults to "openai"
+        
+        if ":" in quick_think_config:
+            provider_part, model_part = quick_think_config.split(":", 1)
+            quick_think_provider = provider_part
+            quick_think_model = model_part
+        else:
+            quick_think_model = quick_think_config
+            # Provider already set above or defaults to "openai"
+        
         if not any(model_prefix in deep_think_model for model_prefix in no_temp_models):
             deep_think_kwargs["temperature"] = 0.2
             
         if not any(model_prefix in quick_think_model for model_prefix in no_temp_models):
             quick_think_kwargs["temperature"] = 0.2
         
-        # Note: GPT-5 specific parameters like effort, verbosity, format are not yet 
-        # supported by the current OpenAI Python client library. 
-        # These will be added when the client library is updated to support them.
+        # Create LLM instances using factory
+        print(f"[LLM] Initializing Deep Think LLM - Provider: {deep_think_provider}, Model: {deep_think_model}")
+        try:
+            deep_llm = LLMFactory.create_llm(
+                deep_think_model,
+                provider=deep_think_provider,
+                **deep_think_kwargs
+            )
+            # Get LangChain-compatible LLM for compatibility
+            self.deep_thinking_llm = deep_llm.llm if hasattr(deep_llm, 'llm') else deep_llm._llm
+            print(f"[LLM] ✅ Deep Think LLM initialized successfully with {deep_think_provider}/{deep_think_model}")
+        except Exception as e:
+            print(f"[LLM] ⚠️  Warning: Could not initialize deep_think_llm with provider '{deep_think_provider}': {e}")
+            print(f"[LLM] 🔄 Falling back to OpenAI...")
+            # Fallback to OpenAI
+            api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
+            self.deep_thinking_llm = ChatOpenAI(
+                model=deep_think_model,
+                openai_api_key=api_key,
+                **deep_think_kwargs
+            )
         
-        self.deep_thinking_llm = ChatOpenAI(
-            model=deep_think_model, 
-            openai_api_key=api_key,
-            **deep_think_kwargs
-        )
-        
-        self.quick_thinking_llm = ChatOpenAI(
-            model=quick_think_model, 
-            openai_api_key=api_key,
-            **quick_think_kwargs
-        )
+        print(f"[LLM] Initializing Quick Think LLM - Provider: {quick_think_provider}, Model: {quick_think_model}")
+        try:
+            quick_llm = LLMFactory.create_llm(
+                quick_think_model,
+                provider=quick_think_provider,
+                **quick_think_kwargs
+            )
+            # Get LangChain-compatible LLM for compatibility
+            self.quick_thinking_llm = quick_llm.llm if hasattr(quick_llm, 'llm') else quick_llm._llm
+            print(f"[LLM] ✅ Quick Think LLM initialized successfully with {quick_think_provider}/{quick_think_model}")
+        except Exception as e:
+            print(f"[LLM] ⚠️  Warning: Could not initialize quick_think_llm with provider '{quick_think_provider}': {e}")
+            print(f"[LLM] 🔄 Falling back to OpenAI...")
+            # Fallback to OpenAI
+            api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
+            self.quick_thinking_llm = ChatOpenAI(
+                model=quick_think_model,
+                openai_api_key=api_key,
+                **quick_think_kwargs
+            )
         
         self.toolkit = Toolkit(config=self.config)
 

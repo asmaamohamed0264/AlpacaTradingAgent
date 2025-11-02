@@ -1,5 +1,7 @@
 typing-extensions
 langchain-openai
+# Optional: For Anthropic/Claude support
+# langchain-anthropic
 langchain-experimental
 pandas
 praw
