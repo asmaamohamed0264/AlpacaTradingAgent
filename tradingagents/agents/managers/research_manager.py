@@ -9,6 +9,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe LLM invoke helper
+from tradingagents.agents.utils.agent_utils import safe_llm_invoke
+
 
 def create_research_manager(llm, memory):
     def research_manager_node(state) -> dict:
@@ -56,7 +59,7 @@ Debate History:
         ticker = state.get("company_of_interest", "")
         capture_agent_prompt("research_manager_report", prompt, ticker)
 
-        response = llm.invoke(prompt)
+        response = safe_llm_invoke(llm, prompt, agent_name="RESEARCH MANAGER")
 
         new_investment_debate_state = {
             "judge_decision": response.content,

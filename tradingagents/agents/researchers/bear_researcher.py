@@ -10,6 +10,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe LLM invoke helper
+from tradingagents.agents.utils.agent_utils import safe_llm_invoke
+
 
 def create_bear_researcher(llm, memory):
     def bear_node(state) -> dict:
@@ -63,7 +66,7 @@ Use this information to deliver a compelling bear argument, refute the bull's cl
         ticker = state.get("company_of_interest", "")
         capture_agent_prompt("bear_report", prompt, ticker)
 
-        response = llm.invoke(prompt)
+        response = safe_llm_invoke(llm, prompt, agent_name="BEAR RESEARCHER")
 
         argument = f"Bear Analyst: {response.content}"
 

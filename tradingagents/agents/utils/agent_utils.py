@@ -221,6 +221,123 @@ def create_msg_delete():
     return delete_messages
 
 
+def safe_llm_invoke(llm, messages_or_prompt, agent_name="AGENT", **kwargs):
+    """
+    Safely invoke an LLM with automatic fallback to gpt-3.5-turbo on errors.
+    
+    This function catches errors (timeout, rate limit, 403/404, network issues) and automatically 
+    retries with gpt-3.5-turbo, which is the most widely available OpenAI model.
+    
+    Args:
+        llm: The LangChain LLM instance to invoke
+        messages_or_prompt: Either a string prompt or a list of message dicts
+        agent_name: Name of agent for logging (default "AGENT")
+        **kwargs: Additional kwargs to pass to fallback LLM (e.g., temperature)
+        
+    Returns:
+        Result from llm.invoke()
+    """
+    # Safe fallback models in order of preference
+    SAFE_FALLBACK_MODELS = [
+        "gpt-3.5-turbo",      # Most widely available
+        "gpt-4-turbo",        # Second most common
+        "gpt-4o",             # Third option
+    ]
+    
+    try:
+        # Try original LLM first
+        return llm.invoke(messages_or_prompt, **kwargs)
+    
+    except Exception as e:
+        # Check if this is an error we should handle with fallback
+        error_str = str(e).lower()
+        error_code = None
+        
+        # Extract error code
+        if hasattr(e, 'status_code'):
+            error_code = e.status_code
+        elif hasattr(e, 'response') and hasattr(e.response, 'status_code'):
+            error_code = e.response.status_code
+        
+        # Check exception type
+        exception_type = type(e).__name__
+        if "PermissionDenied" in exception_type:
+            error_code = 403
+        elif "NotFound" in exception_type:
+            error_code = 404
+        elif "Timeout" in exception_type or "timeout" in error_str:
+            error_code = "timeout"
+        elif "RateLimit" in exception_type or "rate limit" in error_str:
+            error_code = "rate_limit"
+        
+        # Check error string
+        if error_code is None:
+            if "403" in error_str or "permission denied" in error_str or "does not have access" in error_str:
+                error_code = 403
+            elif "404" in error_str or "not found" in error_str or "does not exist" in error_str:
+                error_code = 404
+            elif "timeout" in error_str or "timed out" in error_str:
+                error_code = "timeout"
+            elif "rate limit" in error_str or "too many requests" in error_str:
+                error_code = "rate_limit"
+        
+        # Check if it's an error we should handle with fallback
+        should_fallback = (
+            error_code in [403, 404, "timeout", "rate_limit"] or
+            "model" in error_str or 
+            "access" in error_str or 
+            "not available" in error_str or
+            "does not have access" in error_str or
+            "connection" in error_str or
+            "network" in error_str
+        )
+        
+        # Fallback for model errors, timeouts, rate limits, or connection issues
+        if should_fallback:
+            error_type = error_code if isinstance(error_code, str) else f"HTTP {error_code}"
+            print(f"[{agent_name}] ⚠️  Runtime error ({error_type}) with LLM: {str(e)[:200]}")
+            print(f"[{agent_name}] 🔄 Attempting fallback to safe models...")
+            
+            # Prepare fallback kwargs
+            fallback_kwargs = kwargs.copy()
+            if "temperature" not in fallback_kwargs:
+                fallback_kwargs["temperature"] = 0.2
+            
+            # Try fallback models in order
+            for fallback_model in SAFE_FALLBACK_MODELS:
+                try:
+                    print(f"[{agent_name}] 🔄 Trying fallback model: {fallback_model}")
+                    # Create fallback LLM
+                    api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
+                    fallback_llm = ChatOpenAI(
+                        model=fallback_model,
+                        openai_api_key=api_key,
+                        **fallback_kwargs
+                    )
+                    
+                    # Try invoking with fallback LLM
+                    result = fallback_llm.invoke(messages_or_prompt, **kwargs)
+                    print(f"[{agent_name}] ✅ Successfully used fallback model: {fallback_model}")
+                    return result
+                
+                except Exception as fallback_error:
+                    error_str_fb = str(fallback_error).lower()
+                    if "403" in error_str_fb or "404" in error_str_fb or "timeout" in error_str_fb:
+                        print(f"[{agent_name}] ⚠️  Fallback model {fallback_model} also unavailable, trying next...")
+                        continue
+                    else:
+                        # Different error - re-raise
+                        raise fallback_error
+            
+            # All fallbacks failed
+            print(f"[{agent_name}] ❌ All fallback models failed. Original error: {str(e)[:500]}")
+            raise e
+        
+        else:
+            # Not an error we handle - re-raise original exception
+            raise e
+
+
 def safe_chain_invoke(chain, prompt, llm, tools, messages_history, analyst_name="ANALYST"):
     """
     Safely invoke a LangChain chain with automatic fallback to gpt-3.5-turbo on model availability errors.

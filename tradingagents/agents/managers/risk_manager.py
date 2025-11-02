@@ -16,6 +16,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe LLM invoke helper
+from tradingagents.agents.utils.agent_utils import safe_llm_invoke
+
 
 def create_risk_manager(llm, memory, config=None):
     def risk_manager_node(state) -> dict:
@@ -189,7 +192,7 @@ Focus on actionable insights and continuous improvement. Build on past lessons, 
         # Capture the COMPLETE prompt that gets sent to the LLM
         capture_agent_prompt("final_trade_decision", prompt, company_name)
 
-        response = llm.invoke(prompt)
+        response = safe_llm_invoke(llm, prompt, agent_name="RISK MANAGER")
 
         # Extract the recommendation from the response
         trading_mode = trading_context["mode"]

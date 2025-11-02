@@ -11,6 +11,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe LLM invoke helper
+from tradingagents.agents.utils.agent_utils import safe_llm_invoke
+
 
 def create_safe_debator(llm, config=None):
     def safe_node(state) -> dict:
@@ -104,7 +107,7 @@ Output conversationally as if you are speaking without any special formatting.""
         ticker = state.get("company_of_interest", "")
         capture_agent_prompt("conservative_report", prompt, ticker)
 
-        response = llm.invoke(prompt)
+        response = safe_llm_invoke(llm, prompt, agent_name="CONSERVATIVE DEBATOR")
 
         argument = f"Safe Analyst: {response.content}"
 

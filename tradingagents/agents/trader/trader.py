@@ -12,6 +12,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe LLM invoke helper
+from tradingagents.agents.utils.agent_utils import safe_llm_invoke
+
 
 def create_trader(llm, memory, config=None):
     def trader_node(state, name):
@@ -232,7 +235,7 @@ USER MESSAGE:
             # Fallback to system message only
             capture_agent_prompt("trader_investment_plan", messages[0]["content"], company_name)
 
-        result = llm.invoke(messages)
+        result = safe_llm_invoke(llm, messages, agent_name="TRADER")
 
         # Enhanced validation and final proposal handling
         analysis_content = result.content if hasattr(result, 'content') else str(result)
@@ -253,7 +256,7 @@ Include detailed reasoning for EOD trading decisions and conclude with a clear r
 
 Focus on actionable insights with specific price levels and risk parameters."""
             
-            fallback_result = llm.invoke(fallback_prompt)
+            fallback_result = safe_llm_invoke(llm, fallback_prompt, agent_name="TRADER")
             analysis_content = fallback_result.content if hasattr(fallback_result, 'content') else str(fallback_result)
         
         # Ensure we have a final recommendation
@@ -266,7 +269,7 @@ Analysis:
 
 Provide a brief justification and conclude with: FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL**"""
             
-            final_result = llm.invoke(final_prompt)
+            final_result = safe_llm_invoke(llm, final_prompt, agent_name="TRADER")
             final_content = final_result.content if hasattr(final_result, 'content') else str(final_result)
             
             # Properly combine analysis with final proposal

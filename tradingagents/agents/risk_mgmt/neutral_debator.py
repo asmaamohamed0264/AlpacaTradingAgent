@@ -10,6 +10,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe LLM invoke helper
+from tradingagents.agents.utils.agent_utils import safe_llm_invoke
+
 
 def create_neutral_debator(llm, config=None):
     def neutral_node(state) -> dict:
@@ -80,7 +83,7 @@ Output conversationally as if you are speaking without any special formatting.""
         ticker = state.get("company_of_interest", "")
         capture_agent_prompt("neutral_report", prompt, ticker)
 
-        response = llm.invoke(prompt)
+        response = safe_llm_invoke(llm, prompt, agent_name="NEUTRAL DEBATOR")
 
         argument = f"Neutral Analyst: {response.content}"
 
