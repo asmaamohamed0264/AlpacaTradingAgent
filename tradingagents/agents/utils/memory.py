@@ -14,9 +14,9 @@ class FinancialSituationMemory:
         self.situation_collection = self.chroma_client.get_or_create_collection(name=name)
 
     def get_embedding(self, text):
-        """Get OpenAI embedding for a text"""
+        """Get OpenAI embedding for a text with automatic fallback for model availability"""
         # Truncate text if it exceeds the model's token limit
-        # text-embedding-ada-002 has a max context length of 8192 tokens
+        # Most embedding models have a max context length of 8192 tokens
         # Conservative estimate: ~3 characters per token for safety margin
         max_chars = 24000  # ~8000 tokens * 3 chars/token
         if len(text) > max_chars:
@@ -25,10 +25,36 @@ class FinancialSituationMemory:
             text = text[:half_chars] + "\n...[TRUNCATED]...\n" + text[-half_chars:]
             print(f"[MEMORY] Warning: Text truncated to ~{max_chars} characters for embedding")
         
-        response = self.client.embeddings.create(
-            model="text-embedding-ada-002", input=text
-        )
-        return response.data[0].embedding
+        # Try embedding models in order of preference (newer models first, with fallback)
+        embedding_models = [
+            "text-embedding-3-small",    # Newer, widely available
+            "text-embedding-3-large",    # Alternative newer model
+            "text-embedding-ada-002",    # Older model (may not be available in all projects)
+        ]
+        
+        last_error = None
+        for model in embedding_models:
+            try:
+                response = self.client.embeddings.create(
+                    model=model, input=text
+                )
+                if model != embedding_models[0]:
+                    print(f"[MEMORY] ⚠️  Using fallback embedding model: {model}")
+                return response.data[0].embedding
+            except Exception as e:
+                error_str = str(e).lower()
+                # Check if this is a model availability error (403 or 404)
+                if "403" in error_str or "404" in error_str or "does not have access" in error_str or "not found" in error_str:
+                    last_error = e
+                    if model != embedding_models[-1]:  # Not the last model
+                        print(f"[MEMORY] ⚠️  Model {model} unavailable, trying next...")
+                        continue
+                else:
+                    # Different error (rate limit, network, etc.) - re-raise
+                    raise e
+        
+        # All models failed
+        raise Exception(f"All embedding models failed. Last error: {last_error}")
 
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""

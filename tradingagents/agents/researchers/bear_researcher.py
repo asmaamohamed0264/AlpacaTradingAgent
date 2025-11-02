@@ -25,11 +25,17 @@ def create_bear_researcher(llm, memory):
         macro_report = state["macro_report"]
 
         curr_situation = f"{macro_report}\n\n{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
-        past_memories = memory.get_memories(curr_situation, n_matches=2)
-
+        
+        # Try to get past memories, but continue without them if embeddings fail
         past_memory_str = ""
-        for i, rec in enumerate(past_memories, 1):
-            past_memory_str += rec["recommendation"] + "\n\n"
+        try:
+            past_memories = memory.get_memories(curr_situation, n_matches=2)
+            for i, rec in enumerate(past_memories, 1):
+                past_memory_str += rec["recommendation"] + "\n\n"
+        except Exception as e:
+            print(f"[BEAR RESEARCHER] ⚠️  Warning: Could not retrieve memories (embeddings may be unavailable): {str(e)[:200]}")
+            print(f"[BEAR RESEARCHER] 🔄 Continuing without memory system...")
+            past_memory_str = ""  # Continue without past memories
 
         prompt = f"""You are a Bear Analyst making the case against investing in the stock. Your goal is to present a well-reasoned argument emphasizing risks, challenges, and negative indicators. Leverage the provided research and data to highlight potential downsides and counter bullish arguments effectively.
 

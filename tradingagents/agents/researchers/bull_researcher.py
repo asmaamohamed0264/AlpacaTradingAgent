@@ -25,11 +25,17 @@ def create_bull_researcher(llm, memory):
         macro_report = state["macro_report"]
 
         curr_situation = f"{macro_report}\n\n{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
-        past_memories = memory.get_memories(curr_situation, n_matches=2)
-
+        
+        # Try to get past memories, but continue without them if embeddings fail
         past_memory_str = ""
-        for i, rec in enumerate(past_memories, 1):
-            past_memory_str += rec["recommendation"] + "\n\n"
+        try:
+            past_memories = memory.get_memories(curr_situation, n_matches=2)
+            for i, rec in enumerate(past_memories, 1):
+                past_memory_str += rec["recommendation"] + "\n\n"
+        except Exception as e:
+            print(f"[BULL RESEARCHER] ⚠️  Warning: Could not retrieve memories (embeddings may be unavailable): {str(e)[:200]}")
+            print(f"[BULL RESEARCHER] 🔄 Continuing without memory system...")
+            past_memory_str = ""  # Continue without past memories
 
         prompt = f"""You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
 
