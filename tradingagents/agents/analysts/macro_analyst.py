@@ -11,6 +11,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe chain invoke helper
+from tradingagents.agents.utils.agent_utils import safe_chain_invoke
+
 
 def create_macro_analyst(llm, toolkit):
     def macro_analyst_node(state):
@@ -121,8 +124,8 @@ For your reference, the current date is {current_date}. Focus on macroeconomic c
             # Maintain a copy of the conversation history for iterative tool use
             messages_history = list(state["messages"])
 
-            # First response from the LLM
-            result = chain.invoke(messages_history)
+            # First response from the LLM with safe fallback handling
+            result = safe_chain_invoke(chain, prompt, llm, tools, messages_history, "MACRO")
             
             # Track tool failures to provide graceful fallback
             tool_failures = []
@@ -194,9 +197,9 @@ For your reference, the current date is {current_date}. Focus on macroeconomic c
                     tool_msg = ToolMessage(content=str(tool_result), tool_call_id=tool_call_id)
                     messages_history.extend([ai_tool_call_msg, tool_msg])
 
-                # Get next response from LLM
+                # Get next response from LLM (with safe fallback)
                 try:
-                    result = chain.invoke(messages_history)
+                    result = safe_chain_invoke(chain, prompt, llm, tools, messages_history, "MACRO")
                 except Exception as e:
                     print(f"[MACRO] ❌ Error in LLM chain iteration {iteration_count}: {e}")
                     break

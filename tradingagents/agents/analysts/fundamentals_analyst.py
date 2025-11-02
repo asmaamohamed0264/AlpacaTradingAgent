@@ -11,6 +11,9 @@ except ImportError:
     def capture_agent_prompt(report_type, prompt_content, symbol=None):
         pass
 
+# Import safe chain invoke helper
+from tradingagents.agents.utils.agent_utils import safe_chain_invoke
+
 
 def create_fundamentals_analyst(llm, toolkit):
     def fundamentals_analyst_node(state):
@@ -144,8 +147,8 @@ For your reference, the current date is {current_date}. {asset_type_text} {ticke
             # Copy the incoming conversation history so we can append to it when the model makes tool calls
             messages_history = list(state["messages"])
 
-            # First LLM response
-            result = chain.invoke(messages_history)
+            # First LLM response with safe fallback handling
+            result = safe_chain_invoke(chain, prompt, llm, tools, messages_history, "FUNDAMENTALS")
 
             # Handle iterative tool calls until the model stops requesting them
             while getattr(result, "additional_kwargs", {}).get("tool_calls"):
@@ -195,8 +198,8 @@ For your reference, the current date is {current_date}. {asset_type_text} {ticke
                     messages_history.append(ai_tool_call_msg)
                     messages_history.append(tool_msg)
 
-                # Ask the LLM to continue with the new context
-                result = chain.invoke(messages_history)
+                # Ask the LLM to continue with the new context (with safe fallback)
+                result = safe_chain_invoke(chain, prompt, llm, tools, messages_history, "FUNDAMENTALS")
              
             elapsed_time = time.time() - start_time
             # print(f"[FUNDAMENTALS] ✅ Analysis completed in {elapsed_time:.2f} seconds")

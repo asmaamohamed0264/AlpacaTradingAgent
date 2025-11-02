@@ -12,6 +12,7 @@ from dateutil.relativedelta import relativedelta
 from langchain_openai import ChatOpenAI
 import tradingagents.dataflows.interface as interface
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.dataflows.config import get_api_key
 import json
 import time
 from functools import wraps
@@ -218,6 +219,112 @@ def create_msg_delete():
         return {"messages": [RemoveMessage(id=m.id) for m in messages]}
 
     return delete_messages
+
+
+def safe_chain_invoke(chain, prompt, llm, tools, messages_history, analyst_name="ANALYST"):
+    """
+    Safely invoke a LangChain chain with automatic fallback to gpt-3.5-turbo on model availability errors.
+    
+    This function catches 403/404 errors (model not available) and automatically retries with gpt-3.5-turbo,
+    which is the most widely available OpenAI model.
+    
+    Args:
+        chain: The LangChain chain to invoke (from prompt | llm.bind_tools(tools))
+        prompt: The ChatPromptTemplate (needed to recreate chain with fallback LLM)
+        llm: The original LLM instance (for logging)
+        tools: List of tools (needed to recreate chain with fallback LLM)
+        messages_history: Messages to pass to chain.invoke()
+        analyst_name: Name of analyst for logging (default "ANALYST")
+        
+    Returns:
+        Result from chain.invoke()
+    """
+    # Safe fallback models in order of preference
+    SAFE_FALLBACK_MODELS = [
+        "gpt-3.5-turbo",      # Most widely available
+        "gpt-4-turbo",        # Second most common
+        "gpt-4o",             # Third option
+    ]
+    
+    try:
+        # Try original chain first
+        return chain.invoke(messages_history)
+    
+    except Exception as e:
+        # Check if this is a model availability error (403 or 404)
+        error_str = str(e).lower()
+        error_code = None
+        
+        # Extract error code
+        if hasattr(e, 'status_code'):
+            error_code = e.status_code
+        elif hasattr(e, 'response') and hasattr(e.response, 'status_code'):
+            error_code = e.response.status_code
+        
+        # Check exception type
+        exception_type = type(e).__name__
+        if "PermissionDenied" in exception_type:
+            error_code = 403
+        elif "NotFound" in exception_type:
+            error_code = 404
+        
+        # Check error string
+        if error_code is None:
+            if "403" in error_str or "permission denied" in error_str or "does not have access" in error_str:
+                error_code = 403
+            elif "404" in error_str or "not found" in error_str or "does not exist" in error_str:
+                error_code = 404
+        
+        # Check if it's a model-related error
+        is_model_error = (
+            "model" in error_str or 
+            "access" in error_str or 
+            "not available" in error_str or
+            "does not have access" in error_str or
+            error_code in [403, 404]
+        )
+        
+        # Only fallback for 403/404 errors related to model availability
+        if error_code in [403, 404] and is_model_error:
+            print(f"[{analyst_name}] ⚠️  Runtime error ({error_code}) with LLM: {str(e)[:200]}")
+            print(f"[{analyst_name}] 🔄 Attempting fallback to safe models...")
+            
+            # Try fallback models in order
+            for fallback_model in SAFE_FALLBACK_MODELS:
+                try:
+                    print(f"[{analyst_name}] 🔄 Trying fallback model: {fallback_model}")
+                    # Create fallback LLM
+                    api_key = get_api_key("openai_api_key", "OPENAI_API_KEY")
+                    fallback_llm = ChatOpenAI(
+                        model=fallback_model,
+                        openai_api_key=api_key,
+                        temperature=0.2
+                    )
+                    
+                    # Recreate chain with fallback LLM
+                    fallback_chain = prompt | fallback_llm.bind_tools(tools)
+                    
+                    # Try invoking with fallback chain
+                    result = fallback_chain.invoke(messages_history)
+                    print(f"[{analyst_name}] ✅ Successfully used fallback model: {fallback_model}")
+                    return result
+                
+                except Exception as fallback_error:
+                    error_str_fb = str(fallback_error).lower()
+                    if "403" in error_str_fb or "404" in error_str_fb:
+                        print(f"[{analyst_name}] ⚠️  Fallback model {fallback_model} also unavailable, trying next...")
+                        continue
+                    else:
+                        # Different error (rate limit, network, etc.) - re-raise
+                        raise fallback_error
+            
+            # All fallbacks failed
+            print(f"[{analyst_name}] ❌ All fallback models failed. Original error: {str(e)[:500]}")
+            raise e
+        
+        else:
+            # Not a model availability error - re-raise original exception
+            raise e
 
 
 class Toolkit:
